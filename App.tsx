@@ -1,4 +1,5 @@
 import { StatusBar } from "expo-status-bar";
+import * as Speech from "expo-speech";
 import React, { useMemo, useState } from "react";
 import {
   Alert,
@@ -17,23 +18,23 @@ import { Ionicons } from "@expo/vector-icons";
 type Tab =
   | "home"
   | "route"
-  | "places"
+  | "discover"
   | "taxi"
   | "budget"
-  | "sos"
-  | "ai"
-  | "profile";
+  | "offers"
+  | "voice"
+  | "sos";
 type Category =
   | "sight"
   | "museum"
   | "food"
   | "shop"
   | "nature"
-  | "night"
   | "family"
-  | "exchange";
+  | "night"
+  | "deal";
 type Crowd = "low" | "medium" | "high";
-type TravelStyle = "economy" | "comfort" | "premium";
+type Mood = "calm" | "family" | "romantic" | "active" | "shopping";
 
 type Country = {
   id: string;
@@ -53,6 +54,7 @@ type City = {
   countryId: string;
   name: string;
   subtitle: string;
+  hero: string;
   taxiBaseUZS: number;
   taxiKmUZS: number;
 };
@@ -74,9 +76,19 @@ type Place = {
   crowd: Crowd;
   bestTime: string;
   openNow: boolean;
+  deal?: string;
+  discountPercent?: number;
   cheapTip: string;
   safetyTip: string;
   whyGo: string;
+};
+
+type SmartAlert = {
+  id: string;
+  type: "deal" | "crowd" | "safety" | "route" | "food";
+  title: string;
+  text: string;
+  placeId?: string;
 };
 
 type RouteStep = Place & {
@@ -128,13 +140,6 @@ const countries: Country[] = [
     emergency: { police: "102", ambulance: "103", fire: "101", tourist: "112" },
   },
   {
-    id: "ru",
-    name: "Россия",
-    emoji: "🇷🇺",
-    currency: "RUB",
-    emergency: { police: "102", ambulance: "103", fire: "101", tourist: "112" },
-  },
-  {
     id: "fr",
     name: "Франция",
     emoji: "🇫🇷",
@@ -149,30 +154,11 @@ const countries: Country[] = [
     emergency: { police: "112", ambulance: "118", fire: "115", tourist: "112" },
   },
   {
-    id: "es",
-    name: "Испания",
-    emoji: "🇪🇸",
-    currency: "EUR",
-    emergency: { police: "112", ambulance: "112", fire: "112", tourist: "112" },
-  },
-  {
     id: "us",
     name: "США",
     emoji: "🇺🇸",
     currency: "USD",
     emergency: { police: "911", ambulance: "911", fire: "911", tourist: "911" },
-  },
-  {
-    id: "th",
-    name: "Таиланд",
-    emoji: "🇹🇭",
-    currency: "THB",
-    emergency: {
-      police: "191",
-      ambulance: "1669",
-      fire: "199",
-      tourist: "1155",
-    },
   },
   {
     id: "jp",
@@ -186,21 +172,15 @@ const countries: Country[] = [
       tourist: "050-3816-2787",
     },
   },
-  {
-    id: "eg",
-    name: "Египет",
-    emoji: "🇪🇬",
-    currency: "EGP",
-    emergency: { police: "122", ambulance: "123", fire: "180", tourist: "126" },
-  },
 ];
 
-const popularCities: City[] = [
+const cities: City[] = [
   {
     id: "tashkent",
     countryId: "uz",
     name: "Ташкент",
     subtitle: "Базары, парки, современный город",
+    hero: "Восточный вайб + современный город",
     taxiBaseUZS: 12000,
     taxiKmUZS: 3200,
   },
@@ -208,7 +188,8 @@ const popularCities: City[] = [
     id: "samarkand",
     countryId: "uz",
     name: "Самарканд",
-    subtitle: "Регистан, Шахи-Зинда, плов",
+    subtitle: "Регистан, Шахи-Зинда, базары",
+    hero: "Город великих куполов и легенд",
     taxiBaseUZS: 10000,
     taxiKmUZS: 3000,
   },
@@ -217,6 +198,7 @@ const popularCities: City[] = [
     countryId: "uz",
     name: "Бухара",
     subtitle: "Старый город, минареты, ремесла",
+    hero: "Медленный восточный город для прогулок",
     taxiBaseUZS: 10000,
     taxiKmUZS: 2800,
   },
@@ -225,6 +207,7 @@ const popularCities: City[] = [
     countryId: "uz",
     name: "Хива",
     subtitle: "Ичан-Кала, крепостные стены",
+    hero: "Город-музей под открытым небом",
     taxiBaseUZS: 9000,
     taxiKmUZS: 2600,
   },
@@ -233,70 +216,34 @@ const popularCities: City[] = [
     countryId: "ae",
     name: "Дубай",
     subtitle: "Mall, Creek, Marina, Burj Khalifa",
+    hero: "Люкс, небоскребы и старые рынки",
     taxiBaseUZS: 19000,
     taxiKmUZS: 8500,
-  },
-  {
-    id: "abudhabi",
-    countryId: "ae",
-    name: "Абу-Даби",
-    subtitle: "Мечеть, Лувр, набережная",
-    taxiBaseUZS: 18000,
-    taxiKmUZS: 8000,
   },
   {
     id: "istanbul",
     countryId: "tr",
     name: "Стамбул",
     subtitle: "Айя-София, Босфор, Гранд базар",
+    hero: "Город между Европой и Азией",
     taxiBaseUZS: 17000,
     taxiKmUZS: 6500,
-  },
-  {
-    id: "antalya",
-    countryId: "tr",
-    name: "Анталия",
-    subtitle: "Море, старый город, водопады",
-    taxiBaseUZS: 15000,
-    taxiKmUZS: 6000,
   },
   {
     id: "almaty",
     countryId: "kz",
     name: "Алматы",
     subtitle: "Горы, Кок-Тобе, кафе",
+    hero: "Горы рядом с городом",
     taxiBaseUZS: 14000,
     taxiKmUZS: 4500,
-  },
-  {
-    id: "astana",
-    countryId: "kz",
-    name: "Астана",
-    subtitle: "Современная архитектура",
-    taxiBaseUZS: 14000,
-    taxiKmUZS: 4500,
-  },
-  {
-    id: "moscow",
-    countryId: "ru",
-    name: "Москва",
-    subtitle: "Красная площадь, музеи, парки",
-    taxiBaseUZS: 18000,
-    taxiKmUZS: 6000,
-  },
-  {
-    id: "spb",
-    countryId: "ru",
-    name: "Санкт-Петербург",
-    subtitle: "Эрмитаж, каналы, дворцы",
-    taxiBaseUZS: 17000,
-    taxiKmUZS: 5800,
   },
   {
     id: "paris",
     countryId: "fr",
     name: "Париж",
     subtitle: "Лувр, Эйфелева башня, Монмартр",
+    hero: "Романтика, музеи и красивые улицы",
     taxiBaseUZS: 32000,
     taxiKmUZS: 12000,
   },
@@ -305,48 +252,27 @@ const popularCities: City[] = [
     countryId: "it",
     name: "Рим",
     subtitle: "Колизей, Ватикан, фонтаны",
+    hero: "Античность, паста и прогулки",
     taxiBaseUZS: 28000,
     taxiKmUZS: 11000,
-  },
-  {
-    id: "barcelona",
-    countryId: "es",
-    name: "Барселона",
-    subtitle: "Гауди, море, готический квартал",
-    taxiBaseUZS: 27000,
-    taxiKmUZS: 10500,
   },
   {
     id: "nyc",
     countryId: "us",
     name: "Нью-Йорк",
     subtitle: "Times Square, парки, музеи",
+    hero: "Большой город, энергия и события",
     taxiBaseUZS: 35000,
     taxiKmUZS: 15000,
-  },
-  {
-    id: "bangkok",
-    countryId: "th",
-    name: "Бангкок",
-    subtitle: "Храмы, рынки, уличная еда",
-    taxiBaseUZS: 12000,
-    taxiKmUZS: 4500,
   },
   {
     id: "tokyo",
     countryId: "jp",
     name: "Токио",
     subtitle: "Сибуя, храмы, технологии",
+    hero: "Будущее, традиции и идеальный сервис",
     taxiBaseUZS: 30000,
     taxiKmUZS: 12000,
-  },
-  {
-    id: "cairo",
-    countryId: "eg",
-    name: "Каир",
-    subtitle: "Пирамиды, музеи, базары",
-    taxiBaseUZS: 11000,
-    taxiKmUZS: 4200,
   },
 ];
 
@@ -368,7 +294,7 @@ const places: Place[] = [
     crowd: "medium",
     bestTime: "10:00–12:00",
     openNow: true,
-    cheapTip: "Вход недорогой, сувениры лучше сравнить в 2–3 местах.",
+    cheapTip: "Сувениры лучше сравнить в 2–3 местах.",
     safetyTip: "Спокойная зона, но телефон держи ближе к себе.",
     whyGo: "Хорошая первая точка для знакомства со старым городом.",
   },
@@ -389,9 +315,11 @@ const places: Place[] = [
     crowd: "high",
     bestTime: "11:00–14:00",
     openNow: true,
+    deal: "Сегодня скидки на сухофрукты до 20%",
+    discountPercent: 20,
     cheapTip: "Торгуйся спокойно. Нормально просить минус 15–25%.",
     safetyTip: "Людно, аккуратнее с кошельком и телефоном.",
-    whyGo: "Самый живой рынок города, хороший для сувениров и фото.",
+    whyGo: "Живой рынок города, хороший для сувениров и фото.",
   },
   {
     id: "tashkent-plov",
@@ -410,6 +338,7 @@ const places: Place[] = [
     crowd: "high",
     bestTime: "12:00–14:00",
     openNow: true,
+    deal: "Лучшее время до 13:00 — больше выбор",
     cheapTip: "Приходи днем: вечером хорошие позиции могут закончиться.",
     safetyTip: "Выбирай место с большим потоком гостей.",
     whyGo: "Понятная точка для первого плова в Ташкенте.",
@@ -431,6 +360,7 @@ const places: Place[] = [
     crowd: "medium",
     bestTime: "18:30–21:00",
     openNow: true,
+    deal: "Вечером красивые фото бесплатно",
     cheapTip: "Можно просто гулять бесплатно, кафе выбирать по меню у входа.",
     safetyTip: "Комфортно вечером, обратно лучше ехать на такси.",
     whyGo: "Удобная вечерняя точка для семьи и фото.",
@@ -473,6 +403,7 @@ const places: Place[] = [
     crowd: "medium",
     bestTime: "12:00–14:00",
     openNow: true,
+    deal: "Сладости дешевле в дальних рядах",
     cheapTip: "Сначала пробуй, потом покупай. Сравни 2 ряда.",
     safetyTip: "Торгуйся спокойно, не показывай много наличных.",
     whyGo: "Хорошая точка для сладостей, специй и сувениров.",
@@ -499,48 +430,6 @@ const places: Place[] = [
     whyGo: "Одна из самых красивых улиц мавзолеев в регионе.",
   },
   {
-    id: "bukhara-lyabi",
-    countryId: "uz",
-    cityId: "bukhara",
-    title: "Ляби-Хауз",
-    category: "sight",
-    subtitle: "Сердце старой Бухары",
-    address: "старый город",
-    lat: 39.7747,
-    lng: 64.4231,
-    entryUZS: 0,
-    minSpendUZS: 70000,
-    durationMin: 80,
-    rating: 4.8,
-    crowd: "medium",
-    bestTime: "10:00–12:00",
-    openNow: true,
-    cheapTip: "Кафе у воды дороже, улицей дальше можно дешевле.",
-    safetyTip: "Вечером много туристов, зона комфортная.",
-    whyGo: "Лучшая стартовая точка для прогулки по старому городу.",
-  },
-  {
-    id: "khiva-ichan",
-    countryId: "uz",
-    cityId: "khiva",
-    title: "Ичан-Кала",
-    category: "sight",
-    subtitle: "Город-музей под открытым небом",
-    address: "центр Хивы",
-    lat: 41.3783,
-    lng: 60.3596,
-    entryUZS: 90000,
-    minSpendUZS: 60000,
-    durationMin: 140,
-    rating: 4.9,
-    crowd: "medium",
-    bestTime: "09:00–12:00",
-    openNow: true,
-    cheapTip: "Пеший маршрут экономит транспорт.",
-    safetyTip: "Днем жарко: вода и головной убор обязательно.",
-    whyGo: "Цельная атмосфера древнего города.",
-  },
-  {
     id: "dubai-mall",
     countryId: "ae",
     cityId: "dubai",
@@ -557,30 +446,10 @@ const places: Place[] = [
     crowd: "high",
     bestTime: "10:00–13:00",
     openNow: true,
+    deal: "Фудкорт дешевле ресторанов с видом",
     cheapTip: "Еда в фудкорте дешевле ресторанов с видом.",
     safetyTip: "Безопасно, но легко потратить лишнее.",
     whyGo: "Крупная туристическая точка с множеством активностей.",
-  },
-  {
-    id: "dubai-creek",
-    countryId: "ae",
-    cityId: "dubai",
-    title: "Dubai Creek",
-    category: "sight",
-    subtitle: "Старый город, лодки abra и рынки",
-    address: "Deira",
-    lat: 25.2684,
-    lng: 55.2972,
-    entryUZS: 10000,
-    minSpendUZS: 60000,
-    durationMin: 90,
-    rating: 4.6,
-    crowd: "medium",
-    bestTime: "17:00–20:00",
-    openNow: true,
-    cheapTip: "Abra стоит дешево и дает атмосферу старого Дубая.",
-    safetyTip: "Торгуйся на рынках, цены могут завышать.",
-    whyGo: "Более бюджетная и атмосферная сторона Дубая.",
   },
   {
     id: "istanbul-hagia",
@@ -604,25 +473,47 @@ const places: Place[] = [
     whyGo: "Одна из главных исторических точек мира.",
   },
   {
-    id: "almaty-kok",
-    countryId: "kz",
-    cityId: "almaty",
-    title: "Кок-Тобе",
-    category: "nature",
-    subtitle: "Вид на город, прогулка, кафе",
-    address: "Кок-Тобе",
-    lat: 43.2295,
-    lng: 76.9763,
-    entryUZS: 120000,
-    minSpendUZS: 60000,
-    durationMin: 100,
-    rating: 4.7,
-    crowd: "medium",
-    bestTime: "17:00–20:00",
+    id: "paris-louvre",
+    countryId: "fr",
+    cityId: "paris",
+    title: "Лувр",
+    category: "museum",
+    subtitle: "Один из главных музеев мира",
+    address: "Rue de Rivoli",
+    lat: 48.8606,
+    lng: 2.3376,
+    entryUZS: 280000,
+    minSpendUZS: 50000,
+    durationMin: 150,
+    rating: 4.9,
+    crowd: "high",
+    bestTime: "09:00–11:00",
     openNow: true,
-    cheapTip: "Лучше ехать к закату и заранее заложить транспорт.",
-    safetyTip: "Комфортно, но вечером такси обратно удобнее.",
-    whyGo: "Один из лучших видов на город и горы.",
+    cheapTip: "Покупай билет заранее, чтобы не терять время в очереди.",
+    safetyTip: "У входов бывают карманники.",
+    whyGo: "Главная музейная точка Парижа.",
+  },
+  {
+    id: "tokyo-shibuya",
+    countryId: "jp",
+    cityId: "tokyo",
+    title: "Shibuya Crossing",
+    category: "sight",
+    subtitle: "Знаменитый перекресток и неон",
+    address: "Shibuya",
+    lat: 35.6595,
+    lng: 139.7005,
+    entryUZS: 0,
+    minSpendUZS: 110000,
+    durationMin: 80,
+    rating: 4.7,
+    crowd: "high",
+    bestTime: "18:00–21:00",
+    openNow: true,
+    deal: "Бесплатная фото-точка, траты только на кафе",
+    cheapTip: "Лучшие фото можно сделать бесплатно с верхних этажей кафе.",
+    safetyTip: "Очень людно, следи за группой.",
+    whyGo: "Энергия современного Токио.",
   },
 ];
 
@@ -642,6 +533,7 @@ const fallbackTemplates: Omit<
     crowd: "medium",
     bestTime: "10:00–12:00",
     openNow: true,
+    deal: "Бесплатная прогулка по центру",
     cheapTip:
       "Сначала осмотрись бесплатно, не покупай сувениры в первой лавке.",
     safetyTip: "В туристической зоне следи за телефоном и документами.",
@@ -675,6 +567,7 @@ const fallbackTemplates: Omit<
     crowd: "high",
     bestTime: "12:00–15:00",
     openNow: true,
+    deal: "Еда дешевле в местах, где сидят местные",
     cheapTip: "Сравни цены, выбирай места с большим потоком местных.",
     safetyTip: "Людно: кошелек и телефон держи ближе.",
     whyGo: "Самый простой способ почувствовать город через еду.",
@@ -691,6 +584,7 @@ const fallbackTemplates: Omit<
     crowd: "low",
     bestTime: "17:00–20:00",
     openNow: true,
+    deal: "Бесплатная вечерняя прогулка",
     cheapTip: "Можно провести время почти бесплатно.",
     safetyTip: "Вечером держись освещенных зон.",
     whyGo: "Хорошо разгружает маршрут и бюджет.",
@@ -707,6 +601,7 @@ const fallbackTemplates: Omit<
     crowd: "medium",
     bestTime: "15:00–18:00",
     openNow: true,
+    deal: "Сравни цены в 3 магазинах — можно сэкономить до 30%",
     cheapTip: "Не покупай в первой точке, сравни минимум 3 цены.",
     safetyTip: "Проверяй чек и упаковку.",
     whyGo: "Полезно для подарков и понимания цен.",
@@ -714,14 +609,14 @@ const fallbackTemplates: Omit<
 ];
 
 const categoryLabels: Record<Category, string> = {
-  sight: "Места",
+  sight: "Достопримеч.",
   museum: "Музеи",
   food: "Еда",
   shop: "Магазины",
   nature: "Природа",
-  night: "Вечер",
   family: "Семья",
-  exchange: "Обмен",
+  night: "Вечер",
+  deal: "Акции",
 };
 
 const categoryIcons: Record<Category, keyof typeof Ionicons.glyphMap> = {
@@ -730,9 +625,9 @@ const categoryIcons: Record<Category, keyof typeof Ionicons.glyphMap> = {
   food: "restaurant",
   shop: "bag",
   nature: "leaf",
-  night: "moon",
   family: "people",
-  exchange: "cash",
+  night: "moon",
+  deal: "pricetag",
 };
 
 const crowdLabels: Record<Crowd, string> = {
@@ -743,11 +638,11 @@ const crowdLabels: Record<Crowd, string> = {
 
 const crowdColors: Record<Crowd, string> = {
   low: "#22C55E",
-  medium: "#EAB308",
-  high: "#F43F5E",
+  medium: "#FACC15",
+  high: "#FB7185",
 };
 
-const currencyRatesToUZS: Record<string, number> = {
+const ratesToUZS: Record<string, number> = {
   UZS: 1,
   AED: 3500,
   TRY: 400,
@@ -755,97 +650,117 @@ const currencyRatesToUZS: Record<string, number> = {
   RUB: 150,
   EUR: 14000,
   USD: 13000,
-  THB: 360,
   JPY: 90,
-  EGP: 270,
 };
 
-function getCityById(id: string) {
-  return popularCities.find((city) => city.id === id) ?? popularCities[0];
+function countryById(id: string) {
+  return countries.find((item) => item.id === id) ?? countries[0];
 }
 
-function getCountryById(id: string) {
-  return countries.find((country) => country.id === id) ?? countries[0];
+function cityById(id: string) {
+  return cities.find((item) => item.id === id) ?? cities[0];
 }
 
 function convertFromUZS(valueUZS: number, country: Country) {
-  const rate = currencyRatesToUZS[country.currency] ?? 1;
+  const rate = ratesToUZS[country.currency] ?? 1;
   return Math.max(0, Math.round(valueUZS / rate));
 }
 
 function money(valueUZS: number, country: Country) {
-  const converted = convertFromUZS(valueUZS, country);
-  return `${converted.toLocaleString("ru-RU")} ${country.currency}`;
+  return `${convertFromUZS(valueUZS, country).toLocaleString("ru-RU")} ${country.currency}`;
 }
 
-function parseBudgetToUZS(value: string, country: Country) {
-  const number = Number(value.replace(/\D/g, ""));
-  const rate = currencyRatesToUZS[country.currency] ?? 1;
-  return Math.max(0, Math.round(number * rate));
+function budgetToUZS(value: string, country: Country) {
+  const numeric = Number(value.replace(/\D/g, ""));
+  return Math.max(0, numeric * (ratesToUZS[country.currency] ?? 1));
 }
 
 function distanceKm(a: Place, b: Place) {
-  const raw =
-    Math.sqrt(Math.pow(a.lat - b.lat, 2) + Math.pow(a.lng - b.lng, 2)) * 110;
-  return Math.max(1, Math.round(raw));
+  return Math.max(
+    1,
+    Math.round(
+      Math.sqrt(Math.pow(a.lat - b.lat, 2) + Math.pow(a.lng - b.lng, 2)) * 110,
+    ),
+  );
 }
 
-function taxiPrice(distance: number, city: City) {
+function taxiCost(distance: number, city: City) {
   return Math.round(city.taxiBaseUZS + distance * city.taxiKmUZS);
 }
 
-function makeFallbackPlaces(
+function fallbackPlaces(
   country: Country,
   city: City,
-  customCityName: string,
+  customName: string,
 ): Place[] {
   return fallbackTemplates.map((template, index) => ({
     ...template,
     id: `fallback-${city.id}-${index}`,
     countryId: country.id,
     cityId: city.id,
-    lat: 41 + index * 0.01,
-    lng: 69 + index * 0.01,
-    title: `${template.title}`,
-    address: `${customCityName}, ${template.address}`,
+    lat: 41 + index * 0.012,
+    lng: 69 + index * 0.012,
+    address: `${customName}, ${template.address}`,
   }));
 }
 
-function getPlacesForCity(
-  country: Country,
-  city: City,
-  customCityName: string,
-) {
+function placesForCity(country: Country, city: City, customName: string) {
   const real = places.filter((place) => place.cityId === city.id);
-  return real.length ? real : makeFallbackPlaces(country, city, customCityName);
+  return real.length ? real : fallbackPlaces(country, city, customName);
 }
 
-function buildRoute(args: {
-  allPlaces: Place[];
+function buildSmartRoute(params: {
+  items: Place[];
   city: City;
   budgetUZS: number;
   selectedCategories: Category[];
-  travelStyle: TravelStyle;
+  mood: Mood;
 }) {
-  const { allPlaces, city, budgetUZS, selectedCategories, travelStyle } = args;
-  const multiplier =
-    travelStyle === "economy" ? 0.8 : travelStyle === "premium" ? 1.35 : 1;
+  const { items, city, budgetUZS, selectedCategories, mood } = params;
 
-  const ranked = [...allPlaces].sort((a, b) => {
-    const aMatch = selectedCategories.includes(a.category) ? 2 : 0;
-    const bMatch = selectedCategories.includes(b.category) ? 2 : 0;
-    const aCrowd = a.crowd === "low" ? 1 : a.crowd === "medium" ? 0.4 : 0;
-    const bCrowd = b.crowd === "low" ? 1 : b.crowd === "medium" ? 0.4 : 0;
-    const aCheap =
-      travelStyle === "economy" ? -(a.entryUZS + a.minSpendUZS) / 100000 : 0;
-    const bCheap =
-      travelStyle === "economy" ? -(b.entryUZS + b.minSpendUZS) / 100000 : 0;
+  const ranked = [...items].sort((a, b) => {
+    const aCategory = selectedCategories.includes(a.category) ? 2 : 0;
+    const bCategory = selectedCategories.includes(b.category) ? 2 : 0;
+    const aCalm = a.crowd === "low" ? 1 : a.crowd === "medium" ? 0.4 : 0;
+    const bCalm = b.crowd === "low" ? 1 : b.crowd === "medium" ? 0.4 : 0;
+    const aDeal = a.deal ? 0.8 : 0;
+    const bDeal = b.deal ? 0.8 : 0;
+    const aMood =
+      mood === "family" && a.category === "family"
+        ? 1.2
+        : mood === "shopping" && a.category === "shop"
+          ? 1.2
+          : mood === "calm" && a.crowd === "low"
+            ? 1.2
+            : mood === "romantic" &&
+                ["sight", "nature", "night"].includes(a.category)
+              ? 1
+              : mood === "active" &&
+                  ["sight", "museum", "food"].includes(a.category)
+                ? 0.8
+                : 0;
+    const bMood =
+      mood === "family" && b.category === "family"
+        ? 1.2
+        : mood === "shopping" && b.category === "shop"
+          ? 1.2
+          : mood === "calm" && b.crowd === "low"
+            ? 1.2
+            : mood === "romantic" &&
+                ["sight", "nature", "night"].includes(b.category)
+              ? 1
+              : mood === "active" &&
+                  ["sight", "museum", "food"].includes(b.category)
+                ? 0.8
+                : 0;
+
     return (
-      bMatch +
+      bCategory +
       b.rating +
-      bCrowd +
-      bCheap -
-      (aMatch + a.rating + aCrowd + aCheap)
+      bCalm +
+      bDeal +
+      bMood -
+      (aCategory + a.rating + aCalm + aDeal + aMood)
     );
   });
 
@@ -856,37 +771,32 @@ function buildRoute(args: {
     "11:00",
     "12:30",
     "14:20",
-    "16:10",
+    "16:00",
     "18:00",
     "19:30",
     "21:00",
   ];
 
   ranked.forEach((place) => {
-    const previous = result[result.length - 1];
-    const km = previous ? distanceKm(previous, place) : 0;
-    const taxi = previous ? taxiPrice(km, city) : 0;
-    const placeCost = Math.round(
-      (place.entryUZS + place.minSpendUZS) * multiplier,
-    );
-    const fullCost = placeCost + taxi;
+    const prev = result[result.length - 1];
+    const km = prev ? distanceKm(prev, place) : 0;
+    const taxi = prev ? taxiCost(km, city) : 0;
+    const pointCost = place.entryUZS + place.minSpendUZS + taxi;
 
     if (
-      result.length < 8 &&
-      (total + fullCost <= budgetUZS || result.length < 2)
+      result.length < 7 &&
+      (total + pointCost <= budgetUZS || result.length < 2)
     ) {
-      total += fullCost;
+      total += pointCost;
       result.push({
         ...place,
         order: result.length + 1,
         time: times[result.length] ?? "12:00",
         distanceKm: km,
         taxiUZS: taxi,
-        transportText: previous
-          ? `Такси ${km} км, примерно ${Math.max(8, km * 4)} мин`
+        transportText: prev
+          ? `Такси ${km} км · ${Math.max(7, km * 4)} мин`
           : "Старт из отеля / текущей точки",
-        entryUZS: Math.round(place.entryUZS * multiplier),
-        minSpendUZS: Math.round(place.minSpendUZS * multiplier),
       });
     }
   });
@@ -894,7 +804,70 @@ function buildRoute(args: {
   return result;
 }
 
-function openMaps(place: Place) {
+function buildAlerts(
+  route: RouteStep[],
+  placesList: Place[],
+  country: Country,
+): SmartAlert[] {
+  const alerts: SmartAlert[] = [];
+  const deal = placesList.find((place) => place.deal);
+  const crowded = route.find((place) => place.crowd === "high");
+  const cheap = [...placesList].sort(
+    (a, b) => a.entryUZS + a.minSpendUZS - (b.entryUZS + b.minSpendUZS),
+  )[0];
+  const next = route[1] ?? route[0];
+
+  if (deal) {
+    alerts.push({
+      id: "deal",
+      type: "deal",
+      title: "Акция рядом",
+      text: `${deal.title}: ${deal.deal}`,
+      placeId: deal.id,
+    });
+  }
+
+  if (crowded) {
+    alerts.push({
+      id: "crowd",
+      type: "crowd",
+      title: "Много людей",
+      text: `${crowded.title} сейчас может быть загружен. Лучше идти утром или после 17:00.`,
+      placeId: crowded.id,
+    });
+  }
+
+  if (cheap) {
+    alerts.push({
+      id: "cheap",
+      type: "food",
+      title: "Где дешевле",
+      text: `${cheap.title} — примерно ${money(cheap.entryUZS + cheap.minSpendUZS, country)}.`,
+      placeId: cheap.id,
+    });
+  }
+
+  if (next) {
+    alerts.push({
+      id: "route",
+      type: "route",
+      title: "Следующая точка",
+      text: `После текущей точки лучше ехать в ${next.title}. Такси примерно ${money(next.taxiUZS, country)}.`,
+      placeId: next.id,
+    });
+  }
+
+  alerts.push({
+    id: "safety",
+    type: "safety",
+    title: "Безопасность",
+    text: `SOS: полиция ${country.emergency.police}, скорая ${country.emergency.ambulance}, туристическая помощь ${country.emergency.tourist}.`,
+  });
+
+  return alerts;
+}
+
+function openMap(place: Place) {
   const url = Platform.select({
     ios: `http://maps.apple.com/?ll=${place.lat},${place.lng}&q=${encodeURIComponent(place.title)}`,
     android: `geo:${place.lat},${place.lng}?q=${encodeURIComponent(place.title)}`,
@@ -905,7 +878,7 @@ function openMaps(place: Place) {
     url ??
       `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`,
   ).catch(() => {
-    Alert.alert("Карта не открылась", `${place.title}: ${place.address}`);
+    Alert.alert("Карта", `${place.title}, ${place.address}`);
   });
 }
 
@@ -914,13 +887,22 @@ function openTaxi(from: Place | null, to: Place) {
     ? `https://yandex.com/maps/?rtext=${from.lat},${from.lng}~${to.lat},${to.lng}&rtt=auto`
     : `https://yandex.com/maps/?ll=${to.lng},${to.lat}&z=15`;
 
-  Linking.openURL(url).catch(() => {
-    Alert.alert("Такси / карта", `Куда ехать: ${to.title}, ${to.address}`);
-  });
+  Linking.openURL(url).catch(() =>
+    Alert.alert("Такси", `Куда ехать: ${to.title}, ${to.address}`),
+  );
 }
 
 function callNumber(number: string) {
   Linking.openURL(`tel:${number}`).catch(() => Alert.alert("Номер", number));
+}
+
+function speak(text: string) {
+  Speech.stop();
+  Speech.speak(text, {
+    language: "ru-RU",
+    pitch: 1,
+    rate: 0.92,
+  });
 }
 
 export default function App() {
@@ -928,64 +910,72 @@ export default function App() {
   const [countryId, setCountryId] = useState("uz");
   const [cityId, setCityId] = useState("tashkent");
   const [customCity, setCustomCity] = useState("");
-  const [budgetValue, setBudgetValue] = useState("500000");
-  const [travelStyle, setTravelStyle] = useState<TravelStyle>("comfort");
+  const [budgetInput, setBudgetInput] = useState("500000");
+  const [mood, setMood] = useState<Mood>("active");
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([
     "sight",
     "museum",
     "food",
     "shop",
   ]);
-  const [savedRoutes, setSavedRoutes] = useState<RouteStep[][]>([]);
   const [chatText, setChatText] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "hello",
       role: "assistant",
-      text: "Я помогу подобрать маршрут под бюджет: точки, такси, где дешевле, где меньше людей, расходы и SOS.",
+      text: "Привет. Я твой туристический помощник. Скажи бюджет, город или спроси: где дешевле, где меньше людей, вызови такси, покажи места.",
     },
   ]);
 
-  const country = getCountryById(countryId);
-  const city = getCityById(cityId);
-  const shownCityName = customCity.trim() || city.name;
-  const cityOptions = popularCities.filter(
-    (item) => item.countryId === countryId,
+  const country = countryById(countryId);
+  const city = cityById(cityId);
+  const cityName = customCity.trim() || city.name;
+  const cityOptions = cities.filter((item) => item.countryId === countryId);
+  const budgetUZS = budgetToUZS(budgetInput, country);
+  const cityPlaces = useMemo(
+    () => placesForCity(country, city, cityName),
+    [country.id, city.id, cityName],
   );
-  const allPlaces = useMemo(
-    () => getPlacesForCity(country, city, shownCityName),
-    [country.id, city.id, shownCityName],
-  );
-  const budgetUZS = parseBudgetToUZS(budgetValue, country);
 
   const route = useMemo(
     () =>
-      buildRoute({
-        allPlaces,
+      buildSmartRoute({
+        items: cityPlaces,
         city,
         budgetUZS,
         selectedCategories,
-        travelStyle,
+        mood,
       }),
-    [allPlaces, city, budgetUZS, selectedCategories, travelStyle],
+    [cityPlaces, city, budgetUZS, selectedCategories, mood],
   );
 
-  const routeTotal = route.reduce(
+  const alerts = useMemo(
+    () => buildAlerts(route, cityPlaces, country),
+    [route, cityPlaces, country],
+  );
+  const total = route.reduce(
     (sum, item) => sum + item.entryUZS + item.minSpendUZS + item.taxiUZS,
     0,
   );
-  const routeEntry = route.reduce((sum, item) => sum + item.entryUZS, 0);
-  const routeSpend = route.reduce((sum, item) => sum + item.minSpendUZS, 0);
-  const routeTaxi = route.reduce((sum, item) => sum + item.taxiUZS, 0);
-  const remaining = budgetUZS - routeTotal;
-
-  const cheapestPlaces = [...allPlaces]
-    .sort((a, b) => a.entryUZS + a.minSpendUZS - (b.entryUZS + b.minSpendUZS))
-    .slice(0, 5);
-  const calmPlaces = allPlaces
-    .filter((place) => place.crowd !== "high")
-    .slice(0, 5);
+  const entryTotal = route.reduce((sum, item) => sum + item.entryUZS, 0);
+  const spendTotal = route.reduce((sum, item) => sum + item.minSpendUZS, 0);
+  const taxiTotal = route.reduce((sum, item) => sum + item.taxiUZS, 0);
+  const remaining = budgetUZS - total;
   const nextPoint = route[1] ?? route[0];
+  const dealPlaces = cityPlaces.filter((place) => place.deal);
+  const calmPlaces = cityPlaces.filter((place) => place.crowd !== "high");
+  const cheapPlaces = [...cityPlaces].sort(
+    (a, b) => a.entryUZS + a.minSpendUZS - (b.entryUZS + b.minSpendUZS),
+  );
+
+  const setCountry = (id: string) => {
+    setCountryId(id);
+    const firstCity = cities.find((item) => item.countryId === id);
+    if (firstCity) {
+      setCityId(firstCity.id);
+      setCustomCity("");
+    }
+  };
 
   const toggleCategory = (category: Category) => {
     setSelectedCategories((current) =>
@@ -995,66 +985,89 @@ export default function App() {
     );
   };
 
-  const handleCountry = (nextCountryId: string) => {
-    setCountryId(nextCountryId);
-    const firstCity = popularCities.find(
-      (item) => item.countryId === nextCountryId,
-    );
-    if (firstCity) {
-      setCityId(firstCity.id);
-      setCustomCity("");
-    }
-  };
+  const assistantReply = (text: string) => {
+    const lower = text.toLowerCase();
+    let answer = `Я подобрал маршрут по ${cityName}: ${route.map((item) => item.title).join(" → ")}. Итого ${money(total, country)}, остаток ${money(remaining, country)}.`;
 
-  const handleCustomCity = (value: string) => {
-    setCustomCity(value);
-    if (value.trim()) {
-      setCityId(`custom-${country.id}`);
+    if (
+      lower.includes("дешев") ||
+      lower.includes("акци") ||
+      lower.includes("скидк")
+    ) {
+      const cheap = cheapPlaces[0];
+      const deal = dealPlaces[0];
+      answer = deal
+        ? `Есть рекомендация: ${deal.title}. ${deal.deal}. Еще дешевый вариант: ${cheap.title}, примерно ${money(cheap.entryUZS + cheap.minSpendUZS, country)}.`
+        : `Самый дешевый вариант: ${cheap.title}, примерно ${money(cheap.entryUZS + cheap.minSpendUZS, country)}. ${cheap.cheapTip}`;
+      setTab("offers");
     }
+
+    if (
+      lower.includes("людей") ||
+      lower.includes("толп") ||
+      lower.includes("спокой")
+    ) {
+      answer = calmPlaces.length
+        ? `Где меньше людей: ${calmPlaces.map((item) => item.title).join(", ")}.`
+        : "Сейчас популярные точки загружены. Лучше идти утром или ближе к вечеру.";
+      setTab("discover");
+    }
+
+    if (lower.includes("такси") || lower.includes("яндекс")) {
+      if (nextPoint) {
+        answer = `Открываю маршрут до ${nextPoint.title}. Примерное такси: ${money(nextPoint.taxiUZS, country)}.`;
+        openTaxi(null, nextPoint);
+        setTab("taxi");
+      } else {
+        answer =
+          "Сначала построй маршрут, потом я смогу открыть такси до следующей точки.";
+      }
+    }
+
+    if (
+      lower.includes("мест") ||
+      lower.includes("покажи") ||
+      lower.includes("куда")
+    ) {
+      answer = `Показываю места для ${cityName}: ${cityPlaces.map((item) => item.title).join(", ")}.`;
+      setTab("discover");
+    }
+
+    if (
+      lower.includes("полици") ||
+      lower.includes("скор") ||
+      lower.includes("sos") ||
+      lower.includes("помощ")
+    ) {
+      answer = `Экстренные номера: полиция ${country.emergency.police}, скорая ${country.emergency.ambulance}, пожарная ${country.emergency.fire}, туристическая помощь ${country.emergency.tourist}.`;
+      setTab("sos");
+    }
+
+    return answer;
   };
 
   const sendChat = () => {
     const text = chatText.trim();
     if (!text) return;
 
-    const lower = text.toLowerCase();
-    let answer = `Для ${shownCityName} под бюджет ${money(budgetUZS, country)} я подобрал: ${route.map((item) => item.title).join(" → ")}. Итого: ${money(routeTotal, country)}. Остаток: ${money(remaining, country)}.`;
-
-    if (lower.includes("дешев") || lower.includes("эконом")) {
-      const cheap = cheapestPlaces[0];
-      answer = `Самая дешевая сильная точка: ${cheap.title}. Примерно ${money(cheap.entryUZS + cheap.minSpendUZS, country)}. ${cheap.cheapTip}`;
-    }
-
-    if (
-      lower.includes("людей") ||
-      lower.includes("толп") ||
-      lower.includes("народу")
-    ) {
-      answer = calmPlaces.length
-        ? `Где меньше людей: ${calmPlaces.map((item) => item.title).join(", ")}.`
-        : "Сейчас в популярных точках может быть много людей. Лучше идти утром или ближе к закрытию.";
-    }
-
-    if (lower.includes("такси") || lower.includes("яндекс")) {
-      answer = nextPoint
-        ? `Следующая точка для такси: ${nextPoint.title}. Примерная поездка: ${money(nextPoint.taxiUZS, country)}. Нажми “Такси” или кнопку на карточке маршрута.`
-        : "Сначала построй маршрут, затем появятся точки такси.";
-    }
-
-    if (
-      lower.includes("полиция") ||
-      lower.includes("скорая") ||
-      lower.includes("sos")
-    ) {
-      answer = `SOS для ${country.name}: полиция ${country.emergency.police}, скорая ${country.emergency.ambulance}, пожарная ${country.emergency.fire}, туристическая помощь ${country.emergency.tourist}.`;
-    }
-
+    const answer = assistantReply(text);
     setMessages((current) => [
       ...current,
       { id: `u-${Date.now()}`, role: "user", text },
       { id: `a-${Date.now()}`, role: "assistant", text: answer },
     ]);
     setChatText("");
+    speak(answer);
+  };
+
+  const quickVoice = (command: string) => {
+    const answer = assistantReply(command);
+    setMessages((current) => [
+      ...current,
+      { id: `u-${Date.now()}`, role: "user", text: command },
+      { id: `a-${Date.now()}`, role: "assistant", text: answer },
+    ]);
+    speak(answer);
   };
 
   return (
@@ -1062,9 +1075,9 @@ export default function App() {
       <StatusBar style="light" />
       <View style={styles.app}>
         <Header
-          cityName={shownCityName}
+          cityName={cityName}
           country={country}
-          routeTotal={routeTotal}
+          total={total}
           budgetUZS={budgetUZS}
         />
 
@@ -1072,26 +1085,33 @@ export default function App() {
           <HomeScreen
             country={country}
             countryId={countryId}
-            onCountry={handleCountry}
+            setCountry={setCountry}
             cityId={cityId}
             cityOptions={cityOptions}
-            customCity={customCity}
-            onCustomCity={handleCustomCity}
-            onCity={(id) => {
+            setCityId={(id) => {
               setCityId(id);
               setCustomCity("");
             }}
-            budgetValue={budgetValue}
-            setBudgetValue={setBudgetValue}
-            travelStyle={travelStyle}
-            setTravelStyle={setTravelStyle}
+            customCity={customCity}
+            setCustomCity={(value) => {
+              setCustomCity(value);
+              if (value.trim()) {
+                setCityId(`custom-${country.id}`);
+              }
+            }}
+            budgetInput={budgetInput}
+            setBudgetInput={setBudgetInput}
+            mood={mood}
+            setMood={setMood}
             selectedCategories={selectedCategories}
             toggleCategory={toggleCategory}
+            alerts={alerts}
             route={route}
-            routeTotal={routeTotal}
-            remaining={remaining}
+            total={total}
             budgetUZS={budgetUZS}
+            remaining={remaining}
             onBuild={() => setTab("route")}
+            onVoice={() => setTab("voice")}
           />
         )}
 
@@ -1099,27 +1119,21 @@ export default function App() {
           <RouteScreen
             country={country}
             route={route}
-            routeTotal={routeTotal}
+            total={total}
             budgetUZS={budgetUZS}
             remaining={remaining}
-            onSave={() => {
-              setSavedRoutes((current) => [route, ...current].slice(0, 10));
-              Alert.alert("Сохранено", "Маршрут добавлен в профиль.");
-            }}
           />
         )}
-
-        {tab === "places" && (
-          <PlacesScreen
+        {tab === "discover" && (
+          <DiscoverScreen
             country={country}
-            places={allPlaces}
-            cheapestPlaces={cheapestPlaces}
-            calmPlaces={calmPlaces}
+            places={cityPlaces}
             selectedCategories={selectedCategories}
             toggleCategory={toggleCategory}
+            cheapPlaces={cheapPlaces}
+            calmPlaces={calmPlaces}
           />
         )}
-
         {tab === "taxi" && (
           <TaxiScreen country={country} route={route} nextPoint={nextPoint} />
         )}
@@ -1127,32 +1141,32 @@ export default function App() {
           <BudgetScreen
             country={country}
             budgetUZS={budgetUZS}
-            routeTotal={routeTotal}
+            total={total}
             remaining={remaining}
-            routeEntry={routeEntry}
-            routeSpend={routeSpend}
-            routeTaxi={routeTaxi}
+            entryTotal={entryTotal}
+            spendTotal={spendTotal}
+            taxiTotal={taxiTotal}
             route={route}
           />
         )}
-        {tab === "sos" && <SosScreen country={country} />}
-        {tab === "ai" && (
-          <AiScreen
+        {tab === "offers" && (
+          <OffersScreen
+            country={country}
+            alerts={alerts}
+            dealPlaces={dealPlaces}
+            cheapPlaces={cheapPlaces}
+          />
+        )}
+        {tab === "voice" && (
+          <VoiceScreen
             messages={messages}
             chatText={chatText}
             setChatText={setChatText}
-            onSend={sendChat}
+            sendChat={sendChat}
+            quickVoice={quickVoice}
           />
         )}
-        {tab === "profile" && (
-          <ProfileScreen
-            country={country}
-            cityName={shownCityName}
-            savedRoutes={savedRoutes}
-            budgetUZS={budgetUZS}
-            route={route}
-          />
-        )}
+        {tab === "sos" && <SosScreen country={country} />}
 
         <BottomTabs active={tab} setActive={setTab} />
       </View>
@@ -1163,29 +1177,32 @@ export default function App() {
 function Header({
   cityName,
   country,
-  routeTotal,
+  total,
   budgetUZS,
 }: {
   cityName: string;
   country: Country;
-  routeTotal: number;
+  total: number;
   budgetUZS: number;
 }) {
-  const ok = routeTotal <= budgetUZS;
+  const ok = total <= budgetUZS;
   return (
     <View style={styles.header}>
       <View>
         <Text style={styles.logo}>TripMate</Text>
-        <Text style={styles.headerSub}>Global AI travel planner</Text>
+        <Text style={styles.headerSub}>tourist AI guide</Text>
       </View>
+
       <View style={styles.headerRight}>
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>
+        <View style={styles.headerPill}>
+          <Text style={styles.headerPillText}>
             {country.emoji} {cityName}
           </Text>
         </View>
-        <View style={[styles.pill, ok ? styles.goodPill : styles.badPill]}>
-          <Text style={styles.pillText}>{ok ? "OK" : "OVER"}</Text>
+        <View
+          style={[styles.headerPill, ok ? styles.goodPill : styles.badPill]}
+        >
+          <Text style={styles.headerPillText}>{ok ? "OK" : "OVER"}</Text>
         </View>
       </View>
     </View>
@@ -1195,23 +1212,25 @@ function Header({
 function HomeScreen(props: {
   country: Country;
   countryId: string;
-  onCountry: (id: string) => void;
+  setCountry: (id: string) => void;
   cityId: string;
   cityOptions: City[];
+  setCityId: (id: string) => void;
   customCity: string;
-  onCustomCity: (value: string) => void;
-  onCity: (id: string) => void;
-  budgetValue: string;
-  setBudgetValue: (value: string) => void;
-  travelStyle: TravelStyle;
-  setTravelStyle: (value: TravelStyle) => void;
+  setCustomCity: (value: string) => void;
+  budgetInput: string;
+  setBudgetInput: (value: string) => void;
+  mood: Mood;
+  setMood: (value: Mood) => void;
   selectedCategories: Category[];
   toggleCategory: (category: Category) => void;
+  alerts: SmartAlert[];
   route: RouteStep[];
-  routeTotal: number;
-  remaining: number;
+  total: number;
   budgetUZS: number;
+  remaining: number;
   onBuild: () => void;
+  onVoice: () => void;
 }) {
   return (
     <ScrollView
@@ -1220,18 +1239,43 @@ function HomeScreen(props: {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.hero}>
-        <View style={styles.heroGlow} />
-        <Text style={styles.kicker}>SMART GLOBAL TRIP</Text>
+        <View style={styles.sun} />
+        <View style={styles.heroBadge}>
+          <Ionicons name="navigate" size={15} color={colors.dark} />
+          <Text style={styles.heroBadgeText}>LIVE TOURIST GUIDE</Text>
+        </View>
         <Text style={styles.heroTitle}>
-          Маршрут под сумму, город и стиль поездки
+          Твой личный гид, который сам ведет по городу
         </Text>
         <Text style={styles.heroText}>
-          Выбираешь страну, город и бюджет. Приложение подбирает известные
-          точки, такси между ними, расходы, где дешевле и где меньше людей.
+          Маршрут, такси, скидки, акции, предупреждения, бюджет, SOS и голосовой
+          помощник в одном приложении.
         </Text>
+
+        <View style={styles.heroButtons}>
+          <Pressable style={styles.primaryButton} onPress={props.onBuild}>
+            <Text style={styles.primaryButtonText}>Построить маршрут</Text>
+            <Ionicons name="arrow-forward" size={19} color={colors.dark} />
+          </Pressable>
+          <Pressable style={styles.voiceButton} onPress={props.onVoice}>
+            <Ionicons name="mic" size={20} color={colors.text} />
+          </Pressable>
+        </View>
       </View>
 
-      <Section title="1. Страна">
+      <Section title="Умные рекомендации сейчас">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.row}
+        >
+          {props.alerts.map((alert) => (
+            <AlertCard key={alert.id} alert={alert} />
+          ))}
+        </ScrollView>
+      </Section>
+
+      <Section title="Страна">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -1240,7 +1284,7 @@ function HomeScreen(props: {
           {countries.map((country) => (
             <Pressable
               key={country.id}
-              onPress={() => props.onCountry(country.id)}
+              onPress={() => props.setCountry(country.id)}
               style={[
                 styles.countryCard,
                 props.countryId === country.id && styles.activeCard,
@@ -1254,7 +1298,7 @@ function HomeScreen(props: {
         </ScrollView>
       </Section>
 
-      <Section title="2. Город">
+      <Section title="Город">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -1263,7 +1307,7 @@ function HomeScreen(props: {
           {props.cityOptions.map((city) => (
             <Pressable
               key={city.id}
-              onPress={() => props.onCity(city.id)}
+              onPress={() => props.setCityId(city.id)}
               style={[
                 styles.cityCard,
                 props.cityId === city.id &&
@@ -1276,23 +1320,24 @@ function HomeScreen(props: {
             </Pressable>
           ))}
         </ScrollView>
-        <View style={styles.inputBox}>
+
+        <View style={styles.searchBox}>
           <Ionicons name="search" size={18} color={colors.muted} />
           <TextInput
             value={props.customCity}
-            onChangeText={props.onCustomCity}
+            onChangeText={props.setCustomCity}
             placeholder="Или введи любой город мира"
             placeholderTextColor={colors.muted}
-            style={styles.input}
+            style={styles.searchInput}
           />
         </View>
       </Section>
 
-      <Section title={`3. Бюджет в ${props.country.currency}`}>
+      <Section title={`Бюджет в ${props.country.currency}`}>
         <View style={styles.budgetBox}>
           <TextInput
-            value={props.budgetValue}
-            onChangeText={props.setBudgetValue}
+            value={props.budgetInput}
+            onChangeText={props.setBudgetInput}
             keyboardType="number-pad"
             placeholder="Например 500000"
             placeholderTextColor={colors.muted}
@@ -1301,43 +1346,49 @@ function HomeScreen(props: {
           <Text style={styles.currency}>{props.country.currency}</Text>
         </View>
         <View style={styles.quickRow}>
-          {[250000, 500000, 1000000, 2000000].map((sum) => (
+          {[250000, 500000, 1000000, 2000000].map((value) => (
             <Pressable
-              key={sum}
+              key={value}
               onPress={() =>
-                props.setBudgetValue(String(convertFromUZS(sum, props.country)))
+                props.setBudgetInput(
+                  String(convertFromUZS(value, props.country)),
+                )
               }
               style={styles.quickChip}
             >
-              <Text style={styles.quickChipText}>
-                {money(sum, props.country)}
+              <Text style={styles.quickText}>
+                {money(value, props.country)}
               </Text>
             </Pressable>
           ))}
         </View>
       </Section>
 
-      <Section title="4. Стиль поездки">
-        <View style={styles.segmentRow}>
+      <Section title="Настроение поездки">
+        <View style={styles.moodGrid}>
           {(
             [
-              ["economy", "Эконом"],
-              ["comfort", "Комфорт"],
-              ["premium", "Премиум"],
-            ] as [TravelStyle, string][]
-          ).map(([id, label]) => (
+              ["active", "Активно", "walk"],
+              ["calm", "Спокойно", "leaf"],
+              ["family", "Семья", "people"],
+              ["romantic", "Романтика", "heart"],
+              ["shopping", "Шопинг", "bag"],
+            ] as [Mood, string, keyof typeof Ionicons.glyphMap][]
+          ).map(([id, label, icon]) => (
             <Pressable
               key={id}
-              onPress={() => props.setTravelStyle(id)}
-              style={[
-                styles.segment,
-                props.travelStyle === id && styles.segmentActive,
-              ]}
+              onPress={() => props.setMood(id)}
+              style={[styles.moodCard, props.mood === id && styles.moodActive]}
             >
+              <Ionicons
+                name={icon}
+                size={20}
+                color={props.mood === id ? colors.dark : colors.accent}
+              />
               <Text
                 style={[
-                  styles.segmentText,
-                  props.travelStyle === id && styles.segmentTextActive,
+                  styles.moodText,
+                  props.mood === id && styles.moodTextActive,
                 ]}
               >
                 {label}
@@ -1347,7 +1398,7 @@ function HomeScreen(props: {
         </View>
       </Section>
 
-      <Section title="5. Что включить">
+      <Section title="Что включить">
         <View style={styles.chipsWrap}>
           {(
             [
@@ -1356,26 +1407,26 @@ function HomeScreen(props: {
               "food",
               "shop",
               "nature",
-              "night",
               "family",
+              "night",
             ] as Category[]
-          ).map((cat) => {
-            const active = props.selectedCategories.includes(cat);
+          ).map((category) => {
+            const active = props.selectedCategories.includes(category);
             return (
               <Pressable
-                key={cat}
-                onPress={() => props.toggleCategory(cat)}
+                key={category}
+                onPress={() => props.toggleCategory(category)}
                 style={[styles.chip, active && styles.chipActive]}
               >
                 <Ionicons
-                  name={categoryIcons[cat]}
+                  name={categoryIcons[category]}
                   size={15}
                   color={active ? colors.dark : colors.text}
                 />
                 <Text
                   style={[styles.chipText, active && styles.chipTextActive]}
                 >
-                  {categoryLabels[cat]}
+                  {categoryLabels[category]}
                 </Text>
               </Pressable>
             );
@@ -1384,45 +1435,42 @@ function HomeScreen(props: {
       </Section>
 
       <View style={styles.summaryCard}>
-        <Text style={styles.kicker}>РАСЧЕТ МАРШРУТА</Text>
+        <Text style={styles.kicker}>ПЛАН ПОЕЗДКИ</Text>
         <Text style={styles.summaryTitle}>
           Подобрано точек: {props.route.length}
         </Text>
         <Text style={styles.cardMuted}>
           {props.route.map((item) => item.title).join(" → ") ||
-            "Укажи бюджет и город, чтобы собрать маршрут."}
+            "Выбери город и бюджет"}
         </Text>
         <View style={styles.statGrid}>
           <MiniStat
             label="Бюджет"
             value={money(props.budgetUZS, props.country)}
           />
-          <MiniStat
-            label="Расход"
-            value={money(props.routeTotal, props.country)}
-          />
+          <MiniStat label="Итого" value={money(props.total, props.country)} />
           <MiniStat
             label="Остаток"
             value={money(props.remaining, props.country)}
           />
         </View>
       </View>
-
-      <Pressable style={styles.primaryButton} onPress={props.onBuild}>
-        <Text style={styles.primaryButtonText}>Построить маршрут</Text>
-        <Ionicons name="arrow-forward" size={20} color={colors.dark} />
-      </Pressable>
     </ScrollView>
   );
 }
 
-function RouteScreen(props: {
+function RouteScreen({
+  country,
+  route,
+  total,
+  budgetUZS,
+  remaining,
+}: {
   country: Country;
   route: RouteStep[];
-  routeTotal: number;
+  total: number;
   budgetUZS: number;
   remaining: number;
-  onSave: () => void;
 }) {
   return (
     <ScrollView
@@ -1433,32 +1481,21 @@ function RouteScreen(props: {
       <View style={styles.summaryCard}>
         <Text style={styles.kicker}>ГОТОВЫЙ МАРШРУТ</Text>
         <Text style={styles.summaryTitle}>
-          {props.routeTotal <= props.budgetUZS
-            ? "Уложились в бюджет"
-            : "Бюджет превышен"}
+          {total <= budgetUZS ? "Уложились в бюджет" : "Бюджет превышен"}
         </Text>
         <View style={styles.statGrid}>
-          <MiniStat
-            label="Бюджет"
-            value={money(props.budgetUZS, props.country)}
-          />
-          <MiniStat
-            label="Итого"
-            value={money(props.routeTotal, props.country)}
-          />
-          <MiniStat
-            label="Остаток"
-            value={money(props.remaining, props.country)}
-          />
+          <MiniStat label="Бюджет" value={money(budgetUZS, country)} />
+          <MiniStat label="Итого" value={money(total, country)} />
+          <MiniStat label="Остаток" value={money(remaining, country)} />
         </View>
       </View>
 
-      {props.route.map((step, index) => {
-        const previous = index > 0 ? props.route[index - 1] : null;
+      {route.map((step, index) => {
+        const previous = index > 0 ? route[index - 1] : null;
         return (
           <View key={step.id} style={styles.routeCard}>
             <View style={styles.stepCircle}>
-              <Text style={styles.stepCircleText}>{index + 1}</Text>
+              <Text style={styles.stepText}>{index + 1}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <View style={styles.cardTop}>
@@ -1471,19 +1508,18 @@ function RouteScreen(props: {
               </View>
               <Text style={styles.placeTitle}>{step.title}</Text>
               <Text style={styles.cardMuted}>{step.subtitle}</Text>
+              {step.deal ? (
+                <Text style={styles.dealLine}>🔥 {step.deal}</Text>
+              ) : null}
               <Text style={styles.info}>📍 {step.address}</Text>
               <Text style={styles.info}>
-                ⏱ {step.durationMin} мин • ⭐ {step.rating}
+                🎫 Вход: {money(step.entryUZS, country)} • траты:{" "}
+                {money(step.minSpendUZS, country)}
               </Text>
               <Text style={styles.info}>
-                🎫 Вход: {money(step.entryUZS, props.country)} • траты:{" "}
-                {money(step.minSpendUZS, props.country)}
+                🚕 {step.transportText} • {money(step.taxiUZS, country)}
               </Text>
-              <Text style={styles.info}>
-                🚕 {step.transportText} • {money(step.taxiUZS, props.country)}
-              </Text>
-              <Text style={styles.tip}>Где дешевле: {step.cheapTip}</Text>
-              <Text style={styles.tip}>Безопасность: {step.safetyTip}</Text>
+              <Text style={styles.tip}>Совет: {step.cheapTip}</Text>
 
               <View style={styles.actionRow}>
                 <Pressable
@@ -1495,7 +1531,7 @@ function RouteScreen(props: {
                 </Pressable>
                 <Pressable
                   style={styles.darkButton}
-                  onPress={() => openMaps(step)}
+                  onPress={() => openMap(step)}
                 >
                   <Ionicons name="map" size={17} color={colors.text} />
                   <Text style={styles.darkButtonText}>Карта</Text>
@@ -1505,27 +1541,29 @@ function RouteScreen(props: {
           </View>
         );
       })}
-
-      <Pressable style={styles.primaryButton} onPress={props.onSave}>
-        <Text style={styles.primaryButtonText}>Сохранить маршрут</Text>
-        <Ionicons name="bookmark" size={19} color={colors.dark} />
-      </Pressable>
     </ScrollView>
   );
 }
 
-function PlacesScreen(props: {
+function DiscoverScreen({
+  country,
+  places,
+  selectedCategories,
+  toggleCategory,
+  cheapPlaces,
+  calmPlaces,
+}: {
   country: Country;
   places: Place[];
-  cheapestPlaces: Place[];
-  calmPlaces: Place[];
   selectedCategories: Category[];
-  toggleCategory: (category: Category) => void;
+  toggleCategory: (c: Category) => void;
+  cheapPlaces: Place[];
+  calmPlaces: Place[];
 }) {
-  const filtered = props.places.filter((place) =>
-    props.selectedCategories.includes(place.category),
+  const visible = places.filter((place) =>
+    selectedCategories.includes(place.category),
   );
-  const visible = filtered.length ? filtered : props.places;
+  const list = visible.length ? visible : places;
 
   return (
     <ScrollView
@@ -1533,7 +1571,7 @@ function PlacesScreen(props: {
       contentContainerStyle={styles.contentPad}
       showsVerticalScrollIndicator={false}
     >
-      <Section title="Фильтр мест">
+      <Section title="Категории">
         <View style={styles.chipsWrap}>
           {(
             [
@@ -1542,21 +1580,21 @@ function PlacesScreen(props: {
               "food",
               "shop",
               "nature",
-              "night",
               "family",
+              "night",
             ] as Category[]
-          ).map((cat) => {
-            const active = props.selectedCategories.includes(cat);
+          ).map((category) => {
+            const active = selectedCategories.includes(category);
             return (
               <Pressable
-                key={cat}
-                onPress={() => props.toggleCategory(cat)}
+                key={category}
+                onPress={() => toggleCategory(category)}
                 style={[styles.chip, active && styles.chipActive]}
               >
                 <Text
                   style={[styles.chipText, active && styles.chipTextActive]}
                 >
-                  {categoryLabels[cat]}
+                  {categoryLabels[category]}
                 </Text>
               </Pressable>
             );
@@ -1565,21 +1603,64 @@ function PlacesScreen(props: {
       </Section>
 
       <Section title="Где дешевле">
-        {props.cheapestPlaces.slice(0, 3).map((place) => (
-          <CompactPlace key={place.id} place={place} country={props.country} />
+        {cheapPlaces.slice(0, 3).map((place) => (
+          <CompactPlace key={place.id} place={place} country={country} />
         ))}
       </Section>
 
       <Section title="Где меньше людей">
-        {props.calmPlaces.slice(0, 3).map((place) => (
-          <CompactPlace key={place.id} place={place} country={props.country} />
+        {calmPlaces.slice(0, 3).map((place) => (
+          <CompactPlace key={place.id} place={place} country={country} />
         ))}
       </Section>
 
-      <Section title="Все точки">
-        {visible.map((place) => (
-          <PlaceCard key={place.id} place={place} country={props.country} />
+      <Section title="Все места">
+        {list.map((place) => (
+          <PlaceCard key={place.id} place={place} country={country} />
         ))}
+      </Section>
+    </ScrollView>
+  );
+}
+
+function OffersScreen({
+  country,
+  alerts,
+  dealPlaces,
+  cheapPlaces,
+}: {
+  country: Country;
+  alerts: SmartAlert[];
+  dealPlaces: Place[];
+  cheapPlaces: Place[];
+}) {
+  return (
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={styles.contentPad}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.offerHero}>
+        <Ionicons name="notifications" size={34} color={colors.dark} />
+        <Text style={styles.offerTitle}>Уведомления и рекомендации</Text>
+        <Text style={styles.offerText}>
+          Приложение само подсказывает, где акция, где дешевле, где много людей
+          и куда идти дальше.
+        </Text>
+      </View>
+
+      <Section title="Сейчас важно">
+        {alerts.map((alert) => (
+          <AlertWide key={alert.id} alert={alert} />
+        ))}
+      </Section>
+
+      <Section title="Акции / скидки">
+        {(dealPlaces.length ? dealPlaces : cheapPlaces.slice(0, 3)).map(
+          (place) => (
+            <PlaceCard key={place.id} place={place} country={country} />
+          ),
+        )}
       </Section>
     </ScrollView>
   );
@@ -1601,24 +1682,27 @@ function TaxiScreen({
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.summaryCard}>
-        <Text style={styles.kicker}>ТАКСИ МЕЖДУ ТОЧКАМИ</Text>
-        <Text style={styles.summaryTitle}>Каждый переезд виден отдельно</Text>
+        <Text style={styles.kicker}>ТАКСИ</Text>
+        <Text style={styles.summaryTitle}>
+          До следующей точки — в один клик
+        </Text>
         <Text style={styles.cardMuted}>
-          Кнопка открывает Яндекс/карты с маршрутом до следующей точки.
+          Открывается карта/Яндекс с маршрутом. Позже можно подключить прямые
+          API такси.
         </Text>
       </View>
 
-      {nextPoint && (
+      {nextPoint ? (
         <Pressable
           style={styles.primaryButton}
           onPress={() => openTaxi(null, nextPoint)}
         >
           <Text style={styles.primaryButtonText}>
-            Вызвать такси до: {nextPoint.title}
+            Вызвать такси до {nextPoint.title}
           </Text>
-          <Ionicons name="car" size={20} color={colors.dark} />
+          <Ionicons name="car" size={19} color={colors.dark} />
         </Pressable>
-      )}
+      ) : null}
 
       {route.map((step, index) => {
         const previous = index > 0 ? route[index - 1] : null;
@@ -1645,14 +1729,23 @@ function TaxiScreen({
   );
 }
 
-function BudgetScreen(props: {
+function BudgetScreen({
+  country,
+  budgetUZS,
+  total,
+  remaining,
+  entryTotal,
+  spendTotal,
+  taxiTotal,
+  route,
+}: {
   country: Country;
   budgetUZS: number;
-  routeTotal: number;
+  total: number;
   remaining: number;
-  routeEntry: number;
-  routeSpend: number;
-  routeTaxi: number;
+  entryTotal: number;
+  spendTotal: number;
+  taxiTotal: number;
   route: RouteStep[];
 }) {
   return (
@@ -1662,50 +1755,129 @@ function BudgetScreen(props: {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.summaryCard}>
-        <Text style={styles.kicker}>КОШЕЛЕК ПОЕЗДКИ</Text>
+        <Text style={styles.kicker}>БЮДЖЕТ</Text>
         <Text style={styles.summaryTitle}>
-          {money(props.routeTotal, props.country)} из{" "}
-          {money(props.budgetUZS, props.country)}
+          {money(total, country)} из {money(budgetUZS, country)}
         </Text>
         <Text style={styles.cardMuted}>
-          Остаток: {money(props.remaining, props.country)}
+          Остаток: {money(remaining, country)}
         </Text>
       </View>
 
       <ExpenseRow
         icon="ticket"
         title="Билеты / музеи"
-        value={money(props.routeEntry, props.country)}
+        value={money(entryTotal, country)}
       />
       <ExpenseRow
         icon="restaurant"
         title="Еда / покупки"
-        value={money(props.routeSpend, props.country)}
+        value={money(spendTotal, country)}
       />
-      <ExpenseRow
-        icon="car"
-        title="Такси / транспорт"
-        value={money(props.routeTaxi, props.country)}
-      />
-      <ExpenseRow
-        icon="wallet"
-        title="Итого"
-        value={money(props.routeTotal, props.country)}
-      />
+      <ExpenseRow icon="car" title="Такси" value={money(taxiTotal, country)} />
+      <ExpenseRow icon="wallet" title="Итого" value={money(total, country)} />
 
       <Section title="Расходы по точкам">
-        {props.route.map((step) => (
+        {route.map((step) => (
           <View key={step.id} style={styles.expenseCard}>
             <Text style={styles.cardTitle}>{step.title}</Text>
             <Text style={styles.cardMuted}>
-              Вход {money(step.entryUZS, props.country)} • траты{" "}
-              {money(step.minSpendUZS, props.country)} • такси{" "}
-              {money(step.taxiUZS, props.country)}
+              Вход {money(step.entryUZS, country)} • траты{" "}
+              {money(step.minSpendUZS, country)} • такси{" "}
+              {money(step.taxiUZS, country)}
             </Text>
           </View>
         ))}
       </Section>
     </ScrollView>
+  );
+}
+
+function VoiceScreen({
+  messages,
+  chatText,
+  setChatText,
+  sendChat,
+  quickVoice,
+}: {
+  messages: ChatMessage[];
+  chatText: string;
+  setChatText: (v: string) => void;
+  sendChat: () => void;
+  quickVoice: (v: string) => void;
+}) {
+  return (
+    <View style={styles.voiceWrap}>
+      <View style={styles.voiceHeader}>
+        <View style={styles.micCircle}>
+          <Ionicons name="mic" size={34} color={colors.dark} />
+        </View>
+        <Text style={styles.voiceTitle}>Голосовой помощник</Text>
+        <Text style={styles.cardMuted}>
+          Пока команды вводятся текстом или быстрыми кнопками, а помощник
+          отвечает голосом. Реальную запись голоса подключим следующим модулем.
+        </Text>
+      </View>
+
+      <View style={styles.quickCommands}>
+        {[
+          "Где дешевле?",
+          "Где меньше людей?",
+          "Вызови такси",
+          "Покажи места",
+          "SOS помощь",
+        ].map((cmd) => (
+          <Pressable
+            key={cmd}
+            style={styles.commandChip}
+            onPress={() => quickVoice(cmd)}
+          >
+            <Text style={styles.commandText}>{cmd}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <ScrollView
+        style={styles.chatList}
+        contentContainerStyle={styles.chatPad}
+        showsVerticalScrollIndicator={false}
+      >
+        {messages.map((message) => (
+          <View
+            key={message.id}
+            style={[
+              styles.bubble,
+              message.role === "user"
+                ? styles.userBubble
+                : styles.assistantBubble,
+            ]}
+          >
+            <Text
+              style={[
+                styles.bubbleText,
+                message.role === "user" && styles.userBubbleText,
+              ]}
+            >
+              {message.text}
+            </Text>
+          </View>
+        ))}
+      </ScrollView>
+
+      <View style={styles.inputRow}>
+        <TextInput
+          value={chatText}
+          onChangeText={setChatText}
+          placeholder="Напиши команду для помощника..."
+          placeholderTextColor={colors.muted}
+          style={styles.chatInput}
+          multiline
+        />
+        <Pressable style={styles.sendButton} onPress={sendChat}>
+          <Ionicons name="send" size={18} color={colors.dark} />
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -1745,149 +1917,42 @@ function SosScreen({ country }: { country: Country }) {
         number={country.emergency.tourist}
         icon="help-circle"
       />
-
-      <View style={styles.summaryCard}>
-        <Text style={styles.kicker}>ФРАЗА ДЛЯ МЕСТНЫХ</Text>
-        <Text style={styles.cardTitle}>
-          Помогите, пожалуйста. Мне нужно вызвать помощь и добраться до
-          безопасного места.
-        </Text>
-      </View>
     </ScrollView>
   );
 }
 
-function AiScreen({
-  messages,
-  chatText,
-  setChatText,
-  onSend,
-}: {
-  messages: ChatMessage[];
-  chatText: string;
-  setChatText: (value: string) => void;
-  onSend: () => void;
-}) {
+function AlertCard({ alert }: { alert: SmartAlert }) {
+  const icon: keyof typeof Ionicons.glyphMap =
+    alert.type === "deal"
+      ? "pricetag"
+      : alert.type === "crowd"
+        ? "people"
+        : alert.type === "safety"
+          ? "shield"
+          : alert.type === "food"
+            ? "restaurant"
+            : "navigate";
+
   return (
-    <View style={styles.aiWrap}>
-      <ScrollView
-        contentContainerStyle={styles.chatPad}
-        showsVerticalScrollIndicator={false}
-      >
-        {messages.map((message) => (
-          <View
-            key={message.id}
-            style={[
-              styles.bubble,
-              message.role === "user"
-                ? styles.userBubble
-                : styles.assistantBubble,
-            ]}
-          >
-            <Text
-              style={[
-                styles.bubbleText,
-                message.role === "user" && styles.userBubbleText,
-              ]}
-            >
-              {message.text}
-            </Text>
-          </View>
-        ))}
-      </ScrollView>
-      <View style={styles.inputRow}>
-        <TextInput
-          value={chatText}
-          onChangeText={setChatText}
-          placeholder="Спроси: где дешевле, такси, SOS, где меньше людей..."
-          placeholderTextColor={colors.muted}
-          style={styles.chatInput}
-          multiline
-        />
-        <Pressable style={styles.sendButton} onPress={onSend}>
-          <Ionicons name="send" size={18} color={colors.dark} />
-        </Pressable>
+    <View style={styles.alertCard}>
+      <View style={styles.alertIcon}>
+        <Ionicons name={icon} size={20} color={colors.dark} />
       </View>
+      <Text style={styles.alertTitle}>{alert.title}</Text>
+      <Text style={styles.alertText}>{alert.text}</Text>
     </View>
   );
 }
 
-function ProfileScreen({
-  country,
-  cityName,
-  savedRoutes,
-  budgetUZS,
-  route,
-}: {
-  country: Country;
-  cityName: string;
-  savedRoutes: RouteStep[][];
-  budgetUZS: number;
-  route: RouteStep[];
-}) {
+function AlertWide({ alert }: { alert: SmartAlert }) {
   return (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.contentPad}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.profileHero}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={36} color={colors.dark} />
-        </View>
-        <Text style={styles.profileName}>Гость TripMate</Text>
-        <Text style={styles.cardMuted}>Профиль путешественника</Text>
+    <View style={styles.alertWide}>
+      <Ionicons name="notifications" size={22} color={colors.accent} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.cardTitle}>{alert.title}</Text>
+        <Text style={styles.cardMuted}>{alert.text}</Text>
       </View>
-
-      <View style={styles.statGrid}>
-        <MiniStat label="Страна" value={`${country.emoji} ${country.name}`} />
-        <MiniStat label="Город" value={cityName} />
-        <MiniStat label="Бюджет" value={money(budgetUZS, country)} />
-      </View>
-
-      <Section title="Сохраненные маршруты">
-        {savedRoutes.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.cardTitle}>Пока нет сохраненных маршрутов</Text>
-            <Text style={styles.cardMuted}>
-              Открой вкладку “Маршрут” и нажми сохранить.
-            </Text>
-          </View>
-        ) : (
-          savedRoutes.map((saved, index) => (
-            <View key={index} style={styles.expenseCard}>
-              <Text style={styles.cardTitle}>Маршрут #{index + 1}</Text>
-              <Text style={styles.cardMuted}>
-                {saved.map((item) => item.title).join(" → ")}
-              </Text>
-            </View>
-          ))
-        )}
-      </Section>
-
-      <Section title="Текущая логика">
-        <ProfileRow
-          icon="cash"
-          title="Подбор по бюджету"
-          value={money(budgetUZS, country)}
-        />
-        <ProfileRow
-          icon="car"
-          title="Такси между точками"
-          value={`${Math.max(route.length - 1, 0)} переездов`}
-        />
-        <ProfileRow
-          icon="shield"
-          title="SOS"
-          value={`Полиция ${country.emergency.police}`}
-        />
-        <ProfileRow
-          icon="cloud-offline"
-          title="Офлайн-пакеты"
-          value="Следующий этап"
-        />
-      </Section>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -1902,15 +1967,16 @@ function PlaceCard({ place, country }: { place: Place; country: Country }) {
       </View>
       <Text style={styles.placeTitle}>{place.title}</Text>
       <Text style={styles.cardMuted}>{place.subtitle}</Text>
+      {place.deal ? <Text style={styles.dealLine}>🔥 {place.deal}</Text> : null}
       <Text style={styles.info}>
         ⭐ {place.rating} • {place.bestTime} • {place.durationMin} мин
       </Text>
       <Text style={styles.info}>
         Цена: {money(place.entryUZS + place.minSpendUZS, country)}
       </Text>
-      <Text style={styles.tip}>Дешевле: {place.cheapTip}</Text>
+      <Text style={styles.tip}>Совет: {place.cheapTip}</Text>
       <View style={styles.actionRow}>
-        <Pressable style={styles.darkButton} onPress={() => openMaps(place)}>
+        <Pressable style={styles.darkButton} onPress={() => openMap(place)}>
           <Ionicons name="map" size={17} color={colors.text} />
           <Text style={styles.darkButtonText}>Карта</Text>
         </Pressable>
@@ -1928,7 +1994,7 @@ function PlaceCard({ place, country }: { place: Place; country: Country }) {
 
 function CompactPlace({ place, country }: { place: Place; country: Country }) {
   return (
-    <Pressable style={styles.compactCard} onPress={() => openMaps(place)}>
+    <Pressable style={styles.compactCard} onPress={() => openMap(place)}>
       <View style={{ flex: 1 }}>
         <Text style={styles.cardTitle}>{place.title}</Text>
         <Text style={styles.cardMuted}>
@@ -1991,27 +2057,6 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ProfileRow({
-  icon,
-  title,
-  value,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  value: string;
-}) {
-  return (
-    <View style={styles.profileRow}>
-      <Ionicons name={icon} size={20} color={colors.accent} />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        <Text style={styles.cardMuted}>{value}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-    </View>
-  );
-}
-
 function Section({
   title,
   children,
@@ -2041,30 +2086,30 @@ function BottomTabs({
   }[] = [
     { id: "home", title: "Главная", icon: "sparkles" },
     { id: "route", title: "Маршрут", icon: "map" },
-    { id: "places", title: "Места", icon: "business" },
+    { id: "discover", title: "Места", icon: "compass" },
     { id: "taxi", title: "Такси", icon: "car" },
     { id: "budget", title: "Бюджет", icon: "wallet" },
+    { id: "offers", title: "Акции", icon: "notifications" },
+    { id: "voice", title: "Голос", icon: "mic" },
     { id: "sos", title: "SOS", icon: "shield" },
-    { id: "ai", title: "AI", icon: "chatbubble" },
-    { id: "profile", title: "Профиль", icon: "person-circle" },
   ];
 
   return (
     <View style={styles.tabs}>
       {tabs.map((tab) => {
-        const isActive = active === tab.id;
+        const selected = active === tab.id;
         return (
           <Pressable
             key={tab.id}
             onPress={() => setActive(tab.id)}
-            style={[styles.tab, isActive && styles.tabActive]}
+            style={[styles.tab, selected && styles.tabActive]}
           >
             <Ionicons
               name={tab.icon}
               size={17}
-              color={isActive ? colors.dark : colors.muted}
+              color={selected ? colors.dark : colors.muted}
             />
-            <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+            <Text style={[styles.tabText, selected && styles.tabTextActive]}>
               {tab.title}
             </Text>
           </Pressable>
@@ -2075,16 +2120,18 @@ function BottomTabs({
 }
 
 const colors = {
-  bg: "#111827",
-  panel: "#1F2937",
-  panel2: "#243142",
-  border: "rgba(255,255,255,0.12)",
-  text: "#F9FAFB",
-  muted: "#94A3B8",
-  soft: "#CBD5E1",
-  accent: "#93C5FD",
-  green: "#86EFAC",
-  dark: "#101828",
+  bg: "#102033",
+  bg2: "#172A40",
+  panel: "#20364F",
+  panel2: "#2A4463",
+  border: "rgba(255,255,255,0.14)",
+  text: "#F8FAFC",
+  muted: "#AFC4DA",
+  soft: "#D7E4F2",
+  accent: "#9DDCFF",
+  gold: "#FFD166",
+  green: "#92F2B4",
+  dark: "#071421",
 };
 
 const styles = StyleSheet.create({
@@ -2097,67 +2144,94 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
   },
   logo: {
     color: colors.text,
-    fontSize: 27,
+    fontSize: 28,
     fontWeight: "900",
-    letterSpacing: -0.8,
+    letterSpacing: -1,
   },
   headerSub: {
     color: colors.muted,
+    fontWeight: "800",
     fontSize: 12,
-    fontWeight: "700",
-    marginTop: 2,
+    marginTop: 1,
   },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 7 },
-  pill: {
+  headerRight: { flexDirection: "row", gap: 7, alignItems: "center" },
+  headerPill: {
     backgroundColor: colors.panel2,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingHorizontal: 9,
-    paddingVertical: 8,
     borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  goodPill: { backgroundColor: "rgba(74,222,128,0.18)" },
-  badPill: { backgroundColor: "rgba(251,113,133,0.18)" },
-  pillText: { color: colors.text, fontSize: 11, fontWeight: "900" },
+  goodPill: { backgroundColor: "rgba(34,197,94,0.22)" },
+  badPill: { backgroundColor: "rgba(251,113,133,0.22)" },
+  headerPillText: { color: colors.text, fontWeight: "900", fontSize: 11 },
   content: { flex: 1 },
   contentPad: { padding: 16, paddingBottom: 122 },
   hero: {
-    backgroundColor: colors.panel,
-    borderRadius: 30,
-    padding: 20,
+    borderRadius: 34,
+    padding: 22,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: 20,
+    backgroundColor: colors.panel,
     overflow: "hidden",
+    marginBottom: 20,
   },
-  heroGlow: {
+  sun: {
     position: "absolute",
     width: 220,
     height: 220,
     borderRadius: 110,
-    right: -80,
+    right: -70,
     top: -80,
-    backgroundColor: "rgba(147,197,253,0.16)",
+    backgroundColor: "rgba(255,209,102,0.22)",
   },
-  kicker: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1.1,
+  heroBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.gold,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
+  heroBadgeText: { color: colors.dark, fontWeight: "900", fontSize: 11 },
   heroTitle: {
     color: colors.text,
-    fontSize: 31,
-    lineHeight: 36,
+    fontSize: 32,
+    lineHeight: 37,
     fontWeight: "900",
-    marginTop: 10,
+    marginTop: 16,
   },
-  heroText: { color: colors.soft, fontSize: 14, lineHeight: 21, marginTop: 10 },
+  heroText: { color: colors.soft, fontSize: 14, lineHeight: 22, marginTop: 10 },
+  heroButtons: { flexDirection: "row", gap: 10, marginTop: 18 },
+  primaryButton: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 22,
+    backgroundColor: colors.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  primaryButtonText: { color: colors.dark, fontWeight: "900", fontSize: 15 },
+  voiceButton: {
+    width: 58,
+    height: 58,
+    borderRadius: 22,
+    backgroundColor: colors.panel2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   section: { marginBottom: 22 },
   sectionTitle: {
     color: colors.text,
@@ -2166,6 +2240,40 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   row: { gap: 10, paddingRight: 12 },
+  alertCard: {
+    width: 235,
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 24,
+    padding: 15,
+  },
+  alertIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.gold,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  alertTitle: { color: colors.text, fontWeight: "900", fontSize: 16 },
+  alertText: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 6,
+  },
+  alertWide: {
+    flexDirection: "row",
+    gap: 12,
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 22,
+    padding: 14,
+    marginBottom: 10,
+  },
   countryCard: {
     width: 145,
     backgroundColor: colors.panel,
@@ -2174,24 +2282,24 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 14,
   },
-  countryEmoji: { fontSize: 26, marginBottom: 8 },
+  countryEmoji: { fontSize: 27, marginBottom: 8 },
   cityCard: {
-    width: 178,
+    width: 185,
     backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 22,
     padding: 14,
   },
-  activeCard: { borderColor: colors.accent, backgroundColor: "#2B3B52" },
-  cardTitle: { color: colors.text, fontSize: 15, fontWeight: "900" },
+  activeCard: { backgroundColor: colors.panel2, borderColor: colors.accent },
+  cardTitle: { color: colors.text, fontWeight: "900", fontSize: 15 },
   cardMuted: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
     marginTop: 5,
   },
-  inputBox: {
+  searchBox: {
     marginTop: 10,
     backgroundColor: colors.panel,
     borderWidth: 1,
@@ -2203,7 +2311,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  input: { color: colors.text, flex: 1, fontWeight: "800" },
+  searchInput: { flex: 1, color: colors.text, fontWeight: "800" },
   budgetBox: {
     backgroundColor: colors.panel,
     borderWidth: 1,
@@ -2224,41 +2332,42 @@ const styles = StyleSheet.create({
   quickRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
   quickChip: {
     backgroundColor: colors.panel2,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  quickChipText: { color: colors.soft, fontWeight: "800", fontSize: 12 },
-  segmentRow: { flexDirection: "row", gap: 8 },
-  segment: {
-    flex: 1,
+  quickText: { color: colors.soft, fontWeight: "900", fontSize: 12 },
+  moodGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  moodCard: {
+    width: "31.5%",
+    minHeight: 78,
     backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 18,
-    minHeight: 46,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    gap: 7,
   },
-  segmentActive: { backgroundColor: colors.accent },
-  segmentText: { color: colors.soft, fontWeight: "900" },
-  segmentTextActive: { color: colors.dark },
+  moodActive: { backgroundColor: colors.accent },
+  moodText: { color: colors.text, fontWeight: "900", fontSize: 12 },
+  moodTextActive: { color: colors.dark },
   chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 999,
-    paddingHorizontal: 13,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-  chipActive: { backgroundColor: colors.accent, borderColor: "#BFDBFE" },
-  chipText: { color: colors.soft, fontWeight: "900" },
+  chipActive: { backgroundColor: colors.accent },
+  chipText: { color: colors.soft, fontWeight: "900", fontSize: 12 },
   chipTextActive: { color: colors.dark },
   summaryCard: {
     backgroundColor: colors.panel,
@@ -2267,6 +2376,12 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     padding: 17,
     marginBottom: 16,
+  },
+  kicker: {
+    color: colors.accent,
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1.1,
   },
   summaryTitle: {
     color: colors.text,
@@ -2278,10 +2393,10 @@ const styles = StyleSheet.create({
   miniStat: {
     flex: 1,
     backgroundColor: colors.panel2,
-    borderRadius: 16,
-    padding: 10,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 16,
+    padding: 10,
   },
   miniLabel: { color: colors.muted, fontWeight: "800", fontSize: 11 },
   miniValue: {
@@ -2290,16 +2405,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 5,
   },
-  primaryButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 22,
-    minHeight: 58,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  primaryButtonText: { color: colors.dark, fontSize: 16, fontWeight: "900" },
   routeCard: {
     flexDirection: "row",
     gap: 12,
@@ -2311,19 +2416,19 @@ const styles = StyleSheet.create({
     marginBottom: 13,
   },
   stepCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
-  stepCircleText: { color: colors.dark, fontWeight: "900" },
+  stepText: { color: colors.dark, fontWeight: "900" },
   cardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 8,
     alignItems: "center",
+    gap: 8,
   },
   timeText: { color: colors.accent, fontWeight: "900" },
   crowdText: { fontWeight: "900", fontSize: 12 },
@@ -2332,6 +2437,12 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: "900",
     marginTop: 6,
+  },
+  dealLine: {
+    color: colors.gold,
+    fontWeight: "900",
+    marginTop: 8,
+    lineHeight: 19,
   },
   info: { color: colors.soft, fontWeight: "700", marginTop: 8, lineHeight: 19 },
   tip: { color: "#E0F2FE", marginTop: 9, lineHeight: 19 },
@@ -2404,6 +2515,24 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginVertical: 10,
   },
+  offerHero: {
+    backgroundColor: colors.gold,
+    borderRadius: 28,
+    padding: 20,
+    marginBottom: 16,
+  },
+  offerTitle: {
+    color: colors.dark,
+    fontSize: 27,
+    fontWeight: "900",
+    marginTop: 10,
+  },
+  offerText: {
+    color: "rgba(7,20,33,0.78)",
+    fontWeight: "800",
+    marginTop: 8,
+    lineHeight: 20,
+  },
   expenseRow: {
     backgroundColor: colors.panel,
     borderWidth: 1,
@@ -2425,32 +2554,43 @@ const styles = StyleSheet.create({
     padding: 13,
     marginBottom: 8,
   },
-  sosHero: {
+  voiceWrap: { flex: 1, paddingBottom: 88 },
+  voiceHeader: {
+    margin: 16,
     backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 28,
     padding: 20,
-    marginBottom: 16,
-  },
-  sosTitle: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: "900",
-    marginTop: 10,
-  },
-  sosButton: {
-    backgroundColor: "#DC2626",
-    borderRadius: 22,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: "row",
     alignItems: "center",
-    gap: 12,
   },
-  sosButtonTitle: { color: "#FFF", fontSize: 17, fontWeight: "900" },
-  sosNumber: { color: "#FECACA", marginTop: 3, fontWeight: "800" },
-  aiWrap: { flex: 1, paddingBottom: 88 },
+  micCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: colors.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  voiceTitle: { color: colors.text, fontSize: 25, fontWeight: "900" },
+  quickCommands: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  commandChip: {
+    backgroundColor: colors.panel2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  commandText: { color: colors.text, fontWeight: "900", fontSize: 12 },
+  chatList: { flex: 1 },
   chatPad: { padding: 16, paddingBottom: 18 },
   bubble: { maxWidth: "84%", padding: 14, borderRadius: 22, marginBottom: 10 },
   assistantBubble: {
@@ -2460,7 +2600,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   userBubble: { backgroundColor: colors.accent, alignSelf: "flex-end" },
-  bubbleText: { color: colors.text, lineHeight: 20, fontWeight: "600" },
+  bubbleText: { color: colors.text, lineHeight: 20, fontWeight: "700" },
   userBubbleText: { color: colors.dark },
   inputRow: {
     flexDirection: "row",
@@ -2490,49 +2630,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  profileHero: {
+  sosHero: {
     backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 28,
     padding: 20,
-    alignItems: "center",
     marginBottom: 16,
   },
-  avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
+  sosTitle: {
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: "900",
+    marginTop: 10,
   },
-  profileName: { color: colors.text, fontSize: 24, fontWeight: "900" },
-  profileRow: {
+  sosButton: {
+    backgroundColor: "#DC2626",
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 22,
-    padding: 14,
-    marginBottom: 10,
   },
-  emptyCard: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 22,
-    padding: 16,
-  },
+  sosButtonTitle: { color: "#FFF", fontSize: 17, fontWeight: "900" },
+  sosNumber: { color: "#FECACA", marginTop: 3, fontWeight: "800" },
   tabs: {
     position: "absolute",
     left: 8,
     right: 8,
     bottom: 10,
-    backgroundColor: "#182230",
+    backgroundColor: "#13253A",
     borderRadius: 26,
     padding: 6,
     flexDirection: "row",
