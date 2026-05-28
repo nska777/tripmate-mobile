@@ -1,5 +1,5 @@
-import { StatusBar } from 'expo-status-bar';
-import React, { useMemo, useState } from 'react';
+import { StatusBar } from "expo-status-bar";
+import React, { useMemo, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -10,61 +10,121 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { cities, interests } from './src/data/cities';
-import { budgetLabel, buildRoute, durationLabel, formatUZS } from './src/lib/routeBuilder';
-import type { BudgetLevel, GeneratedRoute, TripDuration } from './src/types';
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { cities, interests } from "./src/data/cities";
+import {
+  budgetLabel,
+  buildRoute,
+  durationLabel,
+  formatUZS,
+} from "./src/lib/routeBuilder";
+import type { BudgetLevel, GeneratedRoute, TripDuration } from "./src/types";
 
-type Tab = 'planner' | 'route' | 'assistant' | 'saved';
-
-type ChatMessage = {
+type Tab = "planner" | "route" | "assistant" | "saved" | "profile";
+type ChatMessage = { id: string; role: "user" | "assistant"; text: string };
+type CountryOption = {
   id: string;
-  role: 'user' | 'assistant';
-  text: string;
+  title: string;
+  emoji: string;
+  subtitle: string;
+  available: boolean;
 };
 
+const countries: CountryOption[] = [
+  {
+    id: "uzbekistan",
+    title: "Узбекистан",
+    emoji: "🇺🇿",
+    subtitle: "Ташкент, Самарканд, Бухара, Хива",
+    available: true,
+  },
+  {
+    id: "uae",
+    title: "ОАЭ",
+    emoji: "🇦🇪",
+    subtitle: "Дубай скоро",
+    available: false,
+  },
+  {
+    id: "turkey",
+    title: "Турция",
+    emoji: "🇹🇷",
+    subtitle: "Стамбул скоро",
+    available: false,
+  },
+  {
+    id: "kazakhstan",
+    title: "Казахстан",
+    emoji: "🇰🇿",
+    subtitle: "Алматы скоро",
+    available: false,
+  },
+];
+
 const durations: { id: TripDuration; title: string; subtitle: string }[] = [
-  { id: '3h', title: '3 часа', subtitle: 'Быстрый маршрут' },
-  { id: '1d', title: '1 день', subtitle: 'Главное за день' },
-  { id: '2d', title: '2 дня', subtitle: 'Спокойный темп' },
-  { id: '3d', title: '3 дня', subtitle: 'Глубокое знакомство' }
+  { id: "3h", title: "3 часа", subtitle: "Быстрый маршрут" },
+  { id: "1d", title: "1 день", subtitle: "Главное за день" },
+  { id: "2d", title: "2 дня", subtitle: "Спокойный темп" },
+  { id: "3d", title: "3 дня", subtitle: "Глубокий тур" },
 ];
 
 const budgets: { id: BudgetLevel; title: string; subtitle: string }[] = [
-  { id: 'economy', title: 'Эконом', subtitle: 'Без лишних трат' },
-  { id: 'comfort', title: 'Комфорт', subtitle: 'Оптимально' },
-  { id: 'premium', title: 'Премиум', subtitle: 'Лучшие места' }
+  { id: "economy", title: "Эконом", subtitle: "Без лишних трат" },
+  { id: "comfort", title: "Комфорт", subtitle: "Оптимально" },
+  { id: "premium", title: "Премиум", subtitle: "Лучшие места" },
 ];
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('planner');
+  const [tab, setTab] = useState<Tab>("planner");
+  const [countryId, setCountryId] = useState("uzbekistan");
   const [cityId, setCityId] = useState(cities[0].id);
-  const [duration, setDuration] = useState<TripDuration>('1d');
-  const [budget, setBudget] = useState<BudgetLevel>('comfort');
-  const [selectedInterests, setSelectedInterests] = useState<string[]>(['history', 'food', 'photo']);
+  const [duration, setDuration] = useState<TripDuration>("1d");
+  const [budget, setBudget] = useState<BudgetLevel>("comfort");
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([
+    "history",
+    "food",
+    "photo",
+  ]);
   const [savedRoutes, setSavedRoutes] = useState<GeneratedRoute[]>([]);
-  const [chatText, setChatText] = useState('');
+  const [chatText, setChatText] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      id: 'hello',
-      role: 'assistant',
-      text: 'Привет! Я локальный AI‑гид. Спроси: “куда сходить вечером?”, “где не переплатить?”, “что посмотреть за 3 часа?”'
-    }
+      id: "hello",
+      role: "assistant",
+      text: "Привет! Я AI‑гид. Спроси, куда сходить вечером, где поесть или как не переплатить.",
+    },
   ]);
 
-  const route = useMemo(() => buildRoute(cityId, duration, budget, selectedInterests), [cityId, duration, budget, selectedInterests]);
+  const selectedCountry =
+    countries.find((item) => item.id === countryId) ?? countries[0];
+  const availableCities = useMemo(
+    () => cities.filter((city) => city.country === selectedCountry.title),
+    [selectedCountry.title],
+  );
+  const route = useMemo(
+    () => buildRoute(cityId, duration, budget, selectedInterests),
+    [cityId, duration, budget, selectedInterests],
+  );
+
+  const chooseCountry = (country: CountryOption) => {
+    setCountryId(country.id);
+    const firstCity = cities.find((city) => city.country === country.title);
+    if (firstCity) setCityId(firstCity.id);
+  };
 
   const toggleInterest = (id: string) => {
     setSelectedInterests((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
     );
   };
 
   const saveCurrentRoute = () => {
     setSavedRoutes((current) => [route, ...current].slice(0, 8));
-    setTab('saved');
+    setTab("saved");
   };
 
   const sendChat = () => {
@@ -73,39 +133,51 @@ export default function App() {
 
     const lower = text.toLowerCase();
     const city = route.city.title;
-    let answer = `Я бы начал с маршрута по городу ${city}: ${route.stops.map((stop) => stop.title).join(' → ')}. Бюджет примерно ${formatUZS(route.totalBudget)}.`;
+    let answer = `Для ${city} я бы построил маршрут: ${route.stops.map((stop) => stop.title).join(" → ")}. Бюджет примерно ${formatUZS(route.totalBudget)}.`;
 
-    if (lower.includes('вечер') || lower.includes('ноч')) {
-      const evening = route.stops.find((stop) => stop.tags.includes('night') || stop.bestTime.includes('19')) ?? route.stops[route.stops.length - 1];
-      answer = `На вечер в ${city} лучше: ${evening.title}. ${evening.tip} Обратно лучше ехать на официальном такси.`;
+    if (lower.includes("вечер") || lower.includes("ноч")) {
+      const evening =
+        route.stops.find((stop) => stop.tags.includes("night")) ??
+        route.stops[route.stops.length - 1];
+      answer = `На вечер лучше: ${evening.title}. ${evening.tip}`;
     }
 
-    if (lower.includes('дешев') || lower.includes('эконом') || lower.includes('не переплат')) {
-      answer = `Чтобы не переплатить: заранее уточняй цену, сравни 2–3 места, не соглашайся на навязчивые предложения. Для ${city} эконом‑день можно держать около ${formatUZS(route.city.dailyBudgetUZS.economy)} без крупных покупок.`;
+    if (
+      lower.includes("дешев") ||
+      lower.includes("эконом") ||
+      lower.includes("не переплат")
+    ) {
+      answer = `Чтобы не переплатить: уточняй цену заранее, сравни 2–3 места и не соглашайся на навязчивые предложения. Эконом‑день в ${city}: около ${formatUZS(route.city.dailyBudgetUZS.economy)}.`;
     }
 
-    if (lower.includes('фото') || lower.includes('инст')) {
-      const photo = route.stops.find((stop) => stop.tags.includes('photo')) ?? route.stops[0];
-      answer = `Для фото выбирай ${photo.title}. Лучшее время: ${photo.bestTime}. Совет: ${photo.tip}`;
+    if (lower.includes("фото") || lower.includes("инст")) {
+      const photo =
+        route.stops.find((stop) => stop.tags.includes("photo")) ??
+        route.stops[0];
+      answer = `Для фото лучше: ${photo.title}. Лучшее время: ${photo.bestTime}. Совет: ${photo.tip}`;
     }
 
     setMessages((current) => [
       ...current,
-      { id: `u-${Date.now()}`, role: 'user', text },
-      { id: `a-${Date.now()}`, role: 'assistant', text: answer }
+      { id: `u-${Date.now()}`, role: "user", text },
+      { id: `a-${Date.now()}`, role: "assistant", text: answer },
     ]);
-    setChatText('');
+    setChatText("");
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="light" />
       <View style={styles.app}>
-        <Header route={route} />
+        <Header route={route} savedCount={savedRoutes.length} />
 
-        {tab === 'planner' && (
+        {tab === "planner" && (
           <PlannerScreen
+            countryId={countryId}
+            countries={countries}
+            chooseCountry={chooseCountry}
             cityId={cityId}
+            citiesList={availableCities.length ? availableCities : cities}
             setCityId={setCityId}
             duration={duration}
             setDuration={setDuration}
@@ -114,15 +186,34 @@ export default function App() {
             selectedInterests={selectedInterests}
             toggleInterest={toggleInterest}
             route={route}
-            onBuild={() => setTab('route')}
+            onBuild={() => setTab("route")}
           />
         )}
 
-        {tab === 'route' && <RouteScreen route={route} onSave={saveCurrentRoute} />}
-        {tab === 'assistant' && (
-          <AssistantScreen messages={messages} chatText={chatText} setChatText={setChatText} onSend={sendChat} />
+        {tab === "route" && (
+          <RouteScreen route={route} onSave={saveCurrentRoute} />
         )}
-        {tab === 'saved' && <SavedScreen savedRoutes={savedRoutes} openRoute={() => setTab('route')} />}
+        {tab === "assistant" && (
+          <AssistantScreen
+            messages={messages}
+            chatText={chatText}
+            setChatText={setChatText}
+            onSend={sendChat}
+          />
+        )}
+        {tab === "saved" && (
+          <SavedScreen
+            savedRoutes={savedRoutes}
+            openRoute={() => setTab("route")}
+          />
+        )}
+        {tab === "profile" && (
+          <ProfileScreen
+            route={route}
+            savedCount={savedRoutes.length}
+            country={selectedCountry}
+          />
+        )}
 
         <BottomTabs active={tab} setActive={setTab} />
       </View>
@@ -130,23 +221,38 @@ export default function App() {
   );
 }
 
-function Header({ route }: { route: GeneratedRoute }) {
+function Header({
+  route,
+  savedCount,
+}: {
+  route: GeneratedRoute;
+  savedCount: number;
+}) {
   return (
     <View style={styles.header}>
       <View>
         <Text style={styles.logo}>TripMate</Text>
-        <Text style={styles.headerSub}>AI‑гид по незнакомому городу</Text>
+        <Text style={styles.headerSub}>Apple dark AI travel guide</Text>
       </View>
-      <View style={styles.cityPill}>
-        <Ionicons name="location" size={15} color="#fff" />
-        <Text style={styles.cityPillText}>{route.city.title}</Text>
+      <View style={styles.headerRight}>
+        <View style={styles.cityPill}>
+          <Ionicons name="location" size={14} color="#F8FAFC" />
+          <Text style={styles.cityPillText}>{route.city.title}</Text>
+        </View>
+        <View style={styles.countPill}>
+          <Text style={styles.countPillText}>{savedCount}</Text>
+        </View>
       </View>
     </View>
   );
 }
 
 function PlannerScreen(props: {
+  countryId: string;
+  countries: CountryOption[];
+  chooseCountry: (country: CountryOption) => void;
   cityId: string;
+  citiesList: typeof cities;
   setCityId: (id: string) => void;
   duration: TripDuration;
   setDuration: (id: TripDuration) => void;
@@ -158,56 +264,115 @@ function PlannerScreen(props: {
   onBuild: () => void;
 }) {
   return (
-    <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentPad}>
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={styles.contentPad}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.heroCard}>
-        <Text style={styles.heroKicker}>MVP для туристов</Text>
-        <Text style={styles.heroTitle}>Собери маршрут за 30 секунд</Text>
-        <Text style={styles.heroText}>Выбери город, время, бюджет и интересы — приложение подготовит готовый план дня.</Text>
+        <View style={styles.heroGlow} />
+        <Text style={styles.kicker}>AI TRAVEL PLANNER</Text>
+        <Text style={styles.heroTitle}>Новый город без стресса</Text>
+        <Text style={styles.heroText}>
+          Выбери страну, город, бюджет и интересы. TripMate соберет маршрут как
+          локальный друг.
+        </Text>
+        <View style={styles.heroStats}>
+          <MiniStat value="30 сек" label="создание" />
+          <MiniStat value={formatUZS(props.route.totalBudget)} label="бюджет" />
+        </View>
       </View>
 
-      <Section title="1. Куда едем?">
+      <Section title="1. Страна">
         <FlatList
           horizontal
-          data={cities}
+          data={props.countries}
           keyExtractor={(item) => item.id}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.horizontalList}
+          contentContainerStyle={styles.rowList}
           renderItem={({ item }) => (
             <Pressable
-              onPress={() => props.setCityId(item.id)}
-              style={[styles.cityCard, props.cityId === item.id && styles.activeCard]}
+              onPress={() => props.chooseCountry(item)}
+              style={[
+                styles.countryCard,
+                props.countryId === item.id && styles.activeCard,
+                !item.available && styles.disabled,
+              ]}
             >
-              <Text style={styles.cityTitle}>{item.title}</Text>
-              <Text style={styles.cityCountry}>{item.country}</Text>
-              <Text style={styles.cityDesc}>{item.short}</Text>
+              <Text style={styles.countryEmoji}>{item.emoji}</Text>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.cardText}>{item.subtitle}</Text>
+              {!item.available && <Text style={styles.soon}>Скоро</Text>}
             </Pressable>
           )}
         />
       </Section>
 
-      <Section title="2. Сколько времени?">
+      <Section title="2. Город">
+        <FlatList
+          horizontal
+          data={props.citiesList}
+          keyExtractor={(item) => item.id}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.rowList}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => props.setCityId(item.id)}
+              style={[
+                styles.cityCard,
+                props.cityId === item.id && styles.activeCard,
+              ]}
+            >
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.cardAccent}>{item.country}</Text>
+              <Text style={styles.cardText}>{item.short}</Text>
+            </Pressable>
+          )}
+        />
+      </Section>
+
+      <Section title="3. Время">
         <View style={styles.gridTwo}>
           {durations.map((item) => (
-            <ChoiceCard key={item.id} title={item.title} subtitle={item.subtitle} active={props.duration === item.id} onPress={() => props.setDuration(item.id)} />
+            <ChoiceCard
+              key={item.id}
+              {...item}
+              active={props.duration === item.id}
+              onPress={() => props.setDuration(item.id)}
+            />
           ))}
         </View>
       </Section>
 
-      <Section title="3. Бюджет">
+      <Section title="4. Бюджет">
         <View style={styles.gridThree}>
           {budgets.map((item) => (
-            <ChoiceCard key={item.id} title={item.title} subtitle={item.subtitle} active={props.budget === item.id} onPress={() => props.setBudget(item.id)} compact />
+            <ChoiceCard
+              key={item.id}
+              {...item}
+              active={props.budget === item.id}
+              onPress={() => props.setBudget(item.id)}
+              compact
+            />
           ))}
         </View>
       </Section>
 
-      <Section title="4. Интересы">
-        <View style={styles.chipsWrap}>
+      <Section title="5. Интересы">
+        <View style={styles.chips}>
           {interests.map((item) => {
             const active = props.selectedInterests.includes(item.id);
             return (
-              <Pressable key={item.id} onPress={() => props.toggleInterest(item.id)} style={[styles.chip, active && styles.chipActive]}>
-                <Text style={styles.chipText}>{item.icon} {item.title}</Text>
+              <Pressable
+                key={item.id}
+                onPress={() => props.toggleInterest(item.id)}
+                style={[styles.chip, active && styles.chipActive]}
+              >
+                <Text
+                  style={[styles.chipText, active && styles.chipTextActive]}
+                >
+                  {item.icon} {item.title}
+                </Text>
               </Pressable>
             );
           })}
@@ -215,52 +380,67 @@ function PlannerScreen(props: {
       </Section>
 
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Предварительный план</Text>
-        <Text style={styles.summaryTitle}>{props.route.city.title} • {durationLabel(props.route.duration)} • {budgetLabel(props.route.budget)}</Text>
-        <Text style={styles.summaryText}>Маршрут: {props.route.stops.map((stop) => stop.title).join(' → ')}</Text>
-        <Text style={styles.summaryBudget}>≈ {formatUZS(props.route.totalBudget)}</Text>
+        <Text style={styles.kicker}>ПРЕДВАРИТЕЛЬНЫЙ ПЛАН</Text>
+        <Text style={styles.summaryTitle}>
+          {props.route.city.title} • {durationLabel(props.route.duration)} •{" "}
+          {budgetLabel(props.route.budget)}
+        </Text>
+        <Text style={styles.cardText}>
+          Маршрут: {props.route.stops.map((stop) => stop.title).join(" → ")}
+        </Text>
+        <Text style={styles.budget}>
+          ≈ {formatUZS(props.route.totalBudget)}
+        </Text>
       </View>
 
       <Pressable style={styles.primaryButton} onPress={props.onBuild}>
         <Text style={styles.primaryButtonText}>Построить маршрут</Text>
-        <Ionicons name="arrow-forward" size={20} color="#fff" />
+        <Ionicons name="arrow-forward" size={20} color="#08111F" />
       </Pressable>
     </ScrollView>
   );
 }
 
-function RouteScreen({ route, onSave }: { route: GeneratedRoute; onSave: () => void }) {
+function RouteScreen({
+  route,
+  onSave,
+}: {
+  route: GeneratedRoute;
+  onSave: () => void;
+}) {
   return (
-    <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentPad}>
-      <View style={styles.routeTopCard}>
-        <Text style={styles.heroKicker}>Готовый маршрут</Text>
-        <Text style={styles.routeTitle}>{route.city.title} за {durationLabel(route.duration)}</Text>
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={styles.contentPad}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.heroCard}>
+        <Text style={styles.kicker}>ГОТОВЫЙ МАРШРУТ</Text>
+        <Text style={styles.heroTitle}>
+          {route.city.title} за {durationLabel(route.duration)}
+        </Text>
         <Text style={styles.heroText}>{route.city.hero}</Text>
-        <View style={styles.metricsRow}>
-          <Metric label="Бюджет" value={formatUZS(route.totalBudget)} />
-          <Metric label="Точек" value={`${route.stops.length}`} />
-          <Metric label="Формат" value={budgetLabel(route.budget)} />
+        <View style={styles.heroStats}>
+          <MiniStat value={formatUZS(route.totalBudget)} label="бюджет" />
+          <MiniStat value={`${route.stops.length}`} label="точек" />
         </View>
       </View>
 
       <Section title="План по времени">
         {route.stops.map((stop, index) => (
           <View key={stop.id} style={styles.stopCard}>
-            <View style={styles.timelineRail}>
-              <View style={styles.timelineDot}><Text style={styles.timelineNumber}>{index + 1}</Text></View>
-              {index !== route.stops.length - 1 && <View style={styles.timelineLine} />}
+            <View style={styles.dot}>
+              <Text style={styles.dotText}>{index + 1}</Text>
             </View>
             <View style={styles.stopBody}>
-              <View style={styles.stopHeader}>
-                <Text style={styles.stopTime}>{stop.time}</Text>
-                <Text style={styles.stopCategory}>{stop.category}</Text>
-              </View>
+              <Text style={styles.stopTime}>
+                {stop.time} • {stop.category}
+              </Text>
               <Text style={styles.stopTitle}>{stop.title}</Text>
-              <Text style={styles.stopSubtitle}>{stop.subtitle}</Text>
-              <Text style={styles.stopInfo}>📍 {stop.address}</Text>
-              <Text style={styles.stopInfo}>🚕 {stop.transfer}</Text>
-              <Text style={styles.stopTip}>Совет: {stop.tip}</Text>
-              <Text style={styles.stopSafety}>Безопасность: {stop.safety}</Text>
+              <Text style={styles.cardText}>{stop.subtitle}</Text>
+              <Text style={styles.infoText}>📍 {stop.address}</Text>
+              <Text style={styles.infoText}>🚕 {stop.transfer}</Text>
+              <Text style={styles.tipText}>Совет: {stop.tip}</Text>
             </View>
           </View>
         ))}
@@ -268,17 +448,17 @@ function RouteScreen({ route, onSave }: { route: GeneratedRoute; onSave: () => v
 
       <Section title="Фразы для города">
         {route.city.phrases.map((phrase) => (
-          <View key={phrase.local} style={styles.phraseCard}>
-            <Text style={styles.phraseRu}>{phrase.ru}</Text>
+          <View key={phrase.local} style={styles.savedCard}>
+            <Text style={styles.stopTitle}>{phrase.ru}</Text>
             <Text style={styles.phraseLocal}>{phrase.local}</Text>
-            <Text style={styles.phraseMeaning}>{phrase.meaning}</Text>
+            <Text style={styles.cardText}>{phrase.meaning}</Text>
           </View>
         ))}
       </Section>
 
       <Pressable style={styles.primaryButton} onPress={onSave}>
         <Text style={styles.primaryButtonText}>Сохранить маршрут</Text>
-        <Ionicons name="bookmark" size={19} color="#fff" />
+        <Ionicons name="bookmark" size={19} color="#08111F" />
       </Pressable>
     </ScrollView>
   );
@@ -291,11 +471,33 @@ function AssistantScreen(props: {
   onSend: () => void;
 }) {
   return (
-    <KeyboardAvoidingView style={styles.assistantWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.chatList} contentContainerStyle={styles.chatPad} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView
+      style={styles.assistantWrap}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView
+        style={styles.chatList}
+        contentContainerStyle={styles.chatPad}
+        showsVerticalScrollIndicator={false}
+      >
         {props.messages.map((message) => (
-          <View key={message.id} style={[styles.bubble, message.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
-            <Text style={[styles.bubbleText, message.role === 'user' && styles.userBubbleText]}>{message.text}</Text>
+          <View
+            key={message.id}
+            style={[
+              styles.bubble,
+              message.role === "user"
+                ? styles.userBubble
+                : styles.assistantBubble,
+            ]}
+          >
+            <Text
+              style={[
+                styles.bubbleText,
+                message.role === "user" && styles.userBubbleText,
+              ]}
+            >
+              {message.text}
+            </Text>
           </View>
         ))}
       </ScrollView>
@@ -304,47 +506,137 @@ function AssistantScreen(props: {
           value={props.chatText}
           onChangeText={props.setChatText}
           placeholder="Спроси AI‑гида..."
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor="#64748B"
           style={styles.chatInput}
           multiline
         />
         <Pressable style={styles.sendButton} onPress={props.onSend}>
-          <Ionicons name="send" size={18} color="#fff" />
+          <Ionicons name="send" size={18} color="#08111F" />
         </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-function SavedScreen({ savedRoutes, openRoute }: { savedRoutes: GeneratedRoute[]; openRoute: () => void }) {
+function SavedScreen({
+  savedRoutes,
+  openRoute,
+}: {
+  savedRoutes: GeneratedRoute[];
+  openRoute: () => void;
+}) {
   return (
-    <ScrollView style={styles.content} contentContainerStyle={styles.contentPad} showsVerticalScrollIndicator={false}>
-      <Section title="Сохраненные маршруты">
-        {savedRoutes.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Пока нет сохраненных маршрутов</Text>
-            <Text style={styles.emptyText}>Собери маршрут и нажми “Сохранить маршрут”.</Text>
-          </View>
-        ) : (
-          savedRoutes.map((route, index) => (
-            <Pressable key={`${route.city.id}-${index}`} style={styles.savedCard} onPress={openRoute}>
-              <Text style={styles.savedTitle}>{route.city.title} • {durationLabel(route.duration)}</Text>
-              <Text style={styles.savedText}>{route.stops.map((stop) => stop.title).join(' → ')}</Text>
-              <Text style={styles.savedBudget}>{formatUZS(route.totalBudget)}</Text>
-            </Pressable>
-          ))
-        )}
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={styles.contentPad}
+      showsVerticalScrollIndicator={false}
+    >
+      {savedRoutes.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Пока нет сохраненных маршрутов</Text>
+          <Text style={styles.cardText}>
+            Собери маршрут и нажми “Сохранить маршрут”.
+          </Text>
+        </View>
+      ) : (
+        savedRoutes.map((route, index) => (
+          <Pressable
+            key={`${route.city.id}-${index}`}
+            style={styles.savedCard}
+            onPress={openRoute}
+          >
+            <Text style={styles.stopTitle}>
+              {route.city.title} • {durationLabel(route.duration)}
+            </Text>
+            <Text style={styles.cardText}>
+              {route.stops.map((stop) => stop.title).join(" → ")}
+            </Text>
+            <Text style={styles.budget}>{formatUZS(route.totalBudget)}</Text>
+          </Pressable>
+        ))
+      )}
+    </ScrollView>
+  );
+}
+
+function ProfileScreen({
+  route,
+  savedCount,
+  country,
+}: {
+  route: GeneratedRoute;
+  savedCount: number;
+  country: CountryOption;
+}) {
+  return (
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={styles.contentPad}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.profileHero}>
+        <View style={styles.avatar}>
+          <Ionicons name="person" size={34} color="#08111F" />
+        </View>
+        <Text style={styles.profileName}>Гость TripMate</Text>
+        <Text style={styles.cardText}>Профиль путешественника</Text>
+      </View>
+      <View style={styles.gridThree}>
+        <MiniStat value={`${country.emoji} ${country.title}`} label="страна" />
+        <MiniStat value={route.city.title} label="город" />
+        <MiniStat value={`${savedCount}`} label="сохранено" />
+      </View>
+      <Section title="Настройки">
+        <ProfileRow icon="language" title="Язык" value="Русский" />
+        <ProfileRow
+          icon="wallet"
+          title="Бюджет"
+          value={budgetLabel(route.budget)}
+        />
+        <ProfileRow icon="cloud-offline" title="Офлайн" value="Скоро" />
       </Section>
     </ScrollView>
   );
 }
 
-function BottomTabs({ active, setActive }: { active: Tab; setActive: (tab: Tab) => void }) {
-  const tabs: { id: Tab; title: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { id: 'planner', title: 'План', icon: 'options' },
-    { id: 'route', title: 'Маршрут', icon: 'map' },
-    { id: 'assistant', title: 'AI', icon: 'chatbubble-ellipses' },
-    { id: 'saved', title: 'Сохранено', icon: 'bookmark' }
+function ProfileRow({
+  icon,
+  title,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.profileRow}>
+      <Ionicons name={icon} size={20} color="#93C5FD" />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.profileRowTitle}>{title}</Text>
+        <Text style={styles.cardText}>{value}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color="#64748B" />
+    </View>
+  );
+}
+
+function BottomTabs({
+  active,
+  setActive,
+}: {
+  active: Tab;
+  setActive: (tab: Tab) => void;
+}) {
+  const tabs: {
+    id: Tab;
+    title: string;
+    icon: keyof typeof Ionicons.glyphMap;
+  }[] = [
+    { id: "planner", title: "План", icon: "sparkles" },
+    { id: "route", title: "Маршрут", icon: "map" },
+    { id: "assistant", title: "AI", icon: "chatbubble" },
+    { id: "saved", title: "Сохранено", icon: "bookmark" },
+    { id: "profile", title: "Профиль", icon: "person-circle" },
   ];
 
   return (
@@ -352,9 +644,19 @@ function BottomTabs({ active, setActive }: { active: Tab; setActive: (tab: Tab) 
       {tabs.map((tab) => {
         const isActive = active === tab.id;
         return (
-          <Pressable key={tab.id} onPress={() => setActive(tab.id)} style={[styles.tabItem, isActive && styles.tabItemActive]}>
-            <Ionicons name={tab.icon} size={19} color={isActive ? '#FFFFFF' : '#64748B'} />
-            <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{tab.title}</Text>
+          <Pressable
+            key={tab.id}
+            onPress={() => setActive(tab.id)}
+            style={[styles.tabItem, isActive && styles.tabItemActive]}
+          >
+            <Ionicons
+              name={tab.icon}
+              size={18}
+              color={isActive ? "#08111F" : "#64748B"}
+            />
+            <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+              {tab.title}
+            </Text>
           </Pressable>
         );
       })}
@@ -362,7 +664,13 @@ function BottomTabs({ active, setActive }: { active: Tab; setActive: (tab: Tab) 
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -371,172 +679,367 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function ChoiceCard(props: { title: string; subtitle: string; active: boolean; onPress: () => void; compact?: boolean }) {
+function ChoiceCard(props: {
+  title: string;
+  subtitle: string;
+  active: boolean;
+  onPress: () => void;
+  compact?: boolean;
+}) {
   return (
-    <Pressable onPress={props.onPress} style={[styles.choiceCard, props.compact && styles.choiceCompact, props.active && styles.activeCard]}>
+    <Pressable
+      onPress={props.onPress}
+      style={[
+        styles.choiceCard,
+        props.compact && styles.choiceCompact,
+        props.active && styles.activeCard,
+      ]}
+    >
       <Text style={styles.choiceTitle}>{props.title}</Text>
-      <Text style={styles.choiceSubtitle}>{props.subtitle}</Text>
+      <Text style={styles.cardText}>{props.subtitle}</Text>
     </Pressable>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function MiniStat({ value, label }: { value: string; label: string }) {
   return (
-    <View style={styles.metric}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>{value}</Text>
+    <View style={styles.miniStat}>
+      <Text style={styles.miniStatValue}>{value}</Text>
+      <Text style={styles.cardText}>{label}</Text>
     </View>
   );
 }
 
+const glass = "rgba(255,255,255,0.1)";
+const card = "rgba(255,255,255,0.07)";
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0F172A' },
-  app: { flex: 1, backgroundColor: '#F8FAFC' },
+  safe: { flex: 1, backgroundColor: "#050812" },
+  app: { flex: 1, backgroundColor: "#050812" },
   header: {
-    backgroundColor: '#0F172A',
     paddingHorizontal: 18,
     paddingTop: 14,
-    paddingBottom: 18,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    paddingBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.06)",
   },
-  logo: { color: '#FFFFFF', fontSize: 28, fontWeight: '900', letterSpacing: -0.8 },
-  headerSub: { color: '#CBD5E1', marginTop: 2, fontSize: 12 },
+  logo: {
+    color: "#F8FAFC",
+    fontSize: 28,
+    fontWeight: "900",
+    letterSpacing: -0.8,
+  },
+  headerSub: {
+    color: "#64748B",
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  headerRight: { flexDirection: "row", gap: 8, alignItems: "center" },
   cityPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.12)'
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: glass,
   },
-  cityPillText: { color: '#fff', fontWeight: '800', fontSize: 12 },
-  content: { flex: 1 },
-  contentPad: { padding: 16, paddingBottom: 110 },
+  cityPillText: { color: "#F8FAFC", fontWeight: "800", fontSize: 12 },
+  countPill: {
+    backgroundColor: "#93C5FD",
+    minWidth: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countPillText: { color: "#08111F", fontWeight: "900" },
+  content: { flex: 1, backgroundColor: "#050812" },
+  contentPad: { padding: 16, paddingBottom: 118 },
   heroCard: {
-    backgroundColor: '#111827',
-    borderRadius: 28,
+    backgroundColor: "#0B1220",
+    borderRadius: 32,
     padding: 22,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 6
+    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: glass,
+    overflow: "hidden",
   },
-  heroKicker: { color: '#38BDF8', fontSize: 12, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 },
-  heroTitle: { color: '#fff', fontSize: 30, lineHeight: 34, fontWeight: '900', marginTop: 8, letterSpacing: -1 },
-  heroText: { color: '#CBD5E1', fontSize: 14, lineHeight: 21, marginTop: 10 },
-  section: { marginBottom: 22 },
-  sectionTitle: { fontSize: 18, fontWeight: '900', color: '#0F172A', marginBottom: 12, letterSpacing: -0.2 },
-  horizontalList: { gap: 12, paddingRight: 12 },
+  heroGlow: {
+    position: "absolute",
+    right: -70,
+    top: -90,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(96,165,250,0.24)",
+  },
+  kicker: {
+    color: "#93C5FD",
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+  },
+  heroTitle: {
+    color: "#F8FAFC",
+    fontSize: 34,
+    lineHeight: 38,
+    fontWeight: "900",
+    marginTop: 10,
+    letterSpacing: -1.1,
+  },
+  heroText: { color: "#CBD5E1", fontSize: 14, lineHeight: 21, marginTop: 10 },
+  heroStats: { flexDirection: "row", gap: 10, marginTop: 18 },
+  miniStat: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: glass,
+    borderRadius: 18,
+    padding: 12,
+  },
+  miniStatValue: { color: "#F8FAFC", fontSize: 15, fontWeight: "900" },
+  section: { marginBottom: 23 },
+  sectionTitle: {
+    color: "#F8FAFC",
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 12,
+  },
+  rowList: { gap: 12, paddingRight: 12 },
+  countryCard: {
+    width: 178,
+    minHeight: 138,
+    backgroundColor: card,
+    borderRadius: 26,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: glass,
+  },
+  countryEmoji: { fontSize: 28 },
   cityCard: {
-    width: 210,
-    backgroundColor: '#fff',
+    width: 218,
+    backgroundColor: card,
+    borderRadius: 26,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: glass,
+  },
+  activeCard: {
+    borderColor: "#93C5FD",
+    backgroundColor: "rgba(147,197,253,0.15)",
+  },
+  disabled: { opacity: 0.62 },
+  cardTitle: {
+    color: "#F8FAFC",
+    fontSize: 18,
+    fontWeight: "900",
+    marginTop: 8,
+  },
+  cardAccent: { color: "#93C5FD", fontWeight: "800", marginTop: 3 },
+  cardText: { color: "#94A3B8", fontSize: 12, lineHeight: 18, marginTop: 5 },
+  soon: { color: "#FDE68A", fontWeight: "900", fontSize: 11, marginTop: 8 },
+  gridTwo: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  gridThree: { flexDirection: "row", gap: 8, marginBottom: 22 },
+  choiceCard: {
+    flexBasis: "48%",
+    flexGrow: 1,
+    backgroundColor: card,
+    borderRadius: 22,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: glass,
+  },
+  choiceCompact: { flex: 1, paddingHorizontal: 10 },
+  choiceTitle: { color: "#F8FAFC", fontSize: 15, fontWeight: "900" },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 9 },
+  chip: {
+    backgroundColor: card,
+    borderColor: glass,
+    borderWidth: 1,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  chipActive: { backgroundColor: "#93C5FD", borderColor: "#BFDBFE" },
+  chipText: { fontWeight: "800", color: "#CBD5E1" },
+  chipTextActive: { color: "#08111F" },
+  summaryCard: {
+    backgroundColor: "rgba(255,255,255,0.09)",
+    borderRadius: 26,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: glass,
+    marginBottom: 14,
+  },
+  summaryTitle: {
+    color: "#F8FAFC",
+    fontWeight: "900",
+    fontSize: 18,
+    marginTop: 6,
+  },
+  budget: { color: "#86EFAC", fontWeight: "900", fontSize: 20, marginTop: 10 },
+  primaryButton: {
+    minHeight: 58,
+    backgroundColor: "#93C5FD",
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+  primaryButtonText: { color: "#08111F", fontSize: 16, fontWeight: "900" },
+  stopCard: { flexDirection: "row", gap: 10, marginBottom: 14 },
+  dot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#93C5FD",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dotText: { color: "#08111F", fontWeight: "900", fontSize: 12 },
+  stopBody: {
+    flex: 1,
+    backgroundColor: card,
+    borderRadius: 24,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: glass,
+  },
+  stopTime: { color: "#93C5FD", fontWeight: "900" },
+  stopTitle: {
+    color: "#F8FAFC",
+    fontSize: 18,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+  phraseLocal: {
+    color: "#93C5FD",
+    fontWeight: "900",
+    fontSize: 17,
+    marginTop: 4,
+  },
+  infoText: { color: "#CBD5E1", marginTop: 8, fontWeight: "700" },
+  tipText: { color: "#E2E8F0", marginTop: 10, lineHeight: 19 },
+  assistantWrap: { flex: 1, paddingBottom: 86, backgroundColor: "#050812" },
+  chatList: { flex: 1 },
+  chatPad: { padding: 16, paddingBottom: 20 },
+  bubble: { maxWidth: "84%", padding: 14, borderRadius: 22, marginBottom: 10 },
+  assistantBubble: {
+    backgroundColor: card,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: glass,
+  },
+  userBubble: { backgroundColor: "#93C5FD", alignSelf: "flex-end" },
+  bubbleText: { color: "#F8FAFC", lineHeight: 20, fontWeight: "600" },
+  userBubbleText: { color: "#08111F" },
+  chatInputRow: {
+    flexDirection: "row",
+    gap: 10,
+    padding: 14,
+    backgroundColor: "#050812",
+    borderTopWidth: 1,
+    borderColor: glass,
+  },
+  chatInput: {
+    flex: 1,
+    minHeight: 48,
+    maxHeight: 120,
+    backgroundColor: card,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: glass,
+    color: "#F8FAFC",
+    fontWeight: "700",
+  },
+  sendButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    backgroundColor: "#93C5FD",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyCard: {
+    backgroundColor: card,
+    borderRadius: 24,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: glass,
+  },
+  emptyTitle: { color: "#F8FAFC", fontSize: 18, fontWeight: "900" },
+  savedCard: {
+    backgroundColor: card,
     borderRadius: 24,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: glass,
+    marginBottom: 12,
   },
-  activeCard: { borderColor: '#2563EB', backgroundColor: '#EFF6FF' },
-  cityTitle: { fontSize: 20, fontWeight: '900', color: '#0F172A' },
-  cityCountry: { color: '#2563EB', fontWeight: '800', marginTop: 3 },
-  cityDesc: { color: '#64748B', fontSize: 13, lineHeight: 18, marginTop: 8 },
-  gridTwo: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  gridThree: { flexDirection: 'row', gap: 8 },
-  choiceCard: {
-    flexBasis: '48%',
-    flexGrow: 1,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 14,
+  profileHero: {
+    backgroundColor: "#0B1220",
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: glass,
+    borderRadius: 32,
+    padding: 22,
+    alignItems: "center",
+    marginBottom: 16,
   },
-  choiceCompact: { flex: 1, paddingHorizontal: 10 },
-  choiceTitle: { fontSize: 15, color: '#0F172A', fontWeight: '900' },
-  choiceSubtitle: { fontSize: 12, color: '#64748B', marginTop: 4 },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  chip: { backgroundColor: '#fff', borderColor: '#E2E8F0', borderWidth: 1, paddingHorizontal: 13, paddingVertical: 10, borderRadius: 999 },
-  chipActive: { backgroundColor: '#DBEAFE', borderColor: '#2563EB' },
-  chipText: { fontWeight: '800', color: '#0F172A' },
-  summaryCard: { backgroundColor: '#fff', borderRadius: 24, padding: 18, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 14 },
-  summaryLabel: { color: '#2563EB', fontWeight: '900', fontSize: 12, textTransform: 'uppercase' },
-  summaryTitle: { color: '#0F172A', fontWeight: '900', fontSize: 18, marginTop: 6 },
-  summaryText: { color: '#64748B', marginTop: 8, lineHeight: 20 },
-  summaryBudget: { color: '#16A34A', fontSize: 22, fontWeight: '900', marginTop: 10 },
-  primaryButton: {
-    minHeight: 56,
-    backgroundColor: '#2563EB',
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10
+  avatar: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "#93C5FD",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
   },
-  primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '900' },
-  routeTopCard: { backgroundColor: '#0F172A', borderRadius: 28, padding: 20, marginBottom: 20 },
-  routeTitle: { color: '#fff', fontSize: 28, fontWeight: '900', marginTop: 8, letterSpacing: -0.8 },
-  metricsRow: { flexDirection: 'row', gap: 8, marginTop: 18 },
-  metric: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 10 },
-  metricLabel: { color: '#94A3B8', fontSize: 11, fontWeight: '800' },
-  metricValue: { color: '#fff', fontSize: 13, fontWeight: '900', marginTop: 4 },
-  stopCard: { flexDirection: 'row', marginBottom: 14 },
-  timelineRail: { width: 34, alignItems: 'center' },
-  timelineDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center' },
-  timelineNumber: { color: '#fff', fontWeight: '900', fontSize: 12 },
-  timelineLine: { width: 2, flex: 1, backgroundColor: '#BFDBFE', marginTop: 4 },
-  stopBody: { flex: 1, backgroundColor: '#fff', borderRadius: 22, padding: 15, borderWidth: 1, borderColor: '#E2E8F0' },
-  stopHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  stopTime: { color: '#2563EB', fontWeight: '900' },
-  stopCategory: { color: '#64748B', fontWeight: '800', fontSize: 12 },
-  stopTitle: { fontSize: 18, fontWeight: '900', color: '#0F172A' },
-  stopSubtitle: { color: '#64748B', marginTop: 3, lineHeight: 19 },
-  stopInfo: { color: '#334155', marginTop: 8, fontWeight: '700' },
-  stopTip: { color: '#0F172A', marginTop: 10, lineHeight: 19 },
-  stopSafety: { color: '#B45309', marginTop: 8, lineHeight: 19, fontWeight: '700' },
-  phraseCard: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 18, padding: 14, marginBottom: 10 },
-  phraseRu: { fontWeight: '900', color: '#0F172A', fontSize: 15 },
-  phraseLocal: { color: '#2563EB', fontWeight: '900', fontSize: 17, marginTop: 4 },
-  phraseMeaning: { color: '#64748B', marginTop: 4 },
-  assistantWrap: { flex: 1, paddingBottom: 82 },
-  chatList: { flex: 1 },
-  chatPad: { padding: 16, paddingBottom: 20 },
-  bubble: { maxWidth: '84%', padding: 14, borderRadius: 20, marginBottom: 10 },
-  assistantBubble: { backgroundColor: '#fff', alignSelf: 'flex-start', borderWidth: 1, borderColor: '#E2E8F0' },
-  userBubble: { backgroundColor: '#2563EB', alignSelf: 'flex-end' },
-  bubbleText: { color: '#0F172A', lineHeight: 20, fontWeight: '600' },
-  userBubbleText: { color: '#fff' },
-  chatInputRow: { flexDirection: 'row', gap: 10, padding: 14, backgroundColor: '#F8FAFC', borderTopWidth: 1, borderColor: '#E2E8F0' },
-  chatInput: { flex: 1, minHeight: 48, maxHeight: 120, backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: '#E2E8F0', color: '#0F172A', fontWeight: '700' },
-  sendButton: { width: 48, height: 48, borderRadius: 18, backgroundColor: '#2563EB', alignItems: 'center', justifyContent: 'center' },
-  emptyCard: { backgroundColor: '#fff', borderRadius: 22, padding: 18, borderWidth: 1, borderColor: '#E2E8F0' },
-  emptyTitle: { fontSize: 18, fontWeight: '900', color: '#0F172A' },
-  emptyText: { color: '#64748B', marginTop: 6 },
-  savedCard: { backgroundColor: '#fff', borderRadius: 22, padding: 16, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 12 },
-  savedTitle: { fontSize: 17, color: '#0F172A', fontWeight: '900' },
-  savedText: { color: '#64748B', marginTop: 8, lineHeight: 20 },
-  savedBudget: { color: '#16A34A', fontWeight: '900', fontSize: 18, marginTop: 10 },
+  profileName: { color: "#F8FAFC", fontSize: 24, fontWeight: "900" },
+  profileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: card,
+    borderWidth: 1,
+    borderColor: glass,
+    borderRadius: 22,
+    padding: 14,
+    marginBottom: 10,
+  },
+  profileRowTitle: { color: "#F8FAFC", fontWeight: "900", fontSize: 15 },
   tabs: {
-    position: 'absolute',
+    position: "absolute",
     left: 12,
     right: 12,
     bottom: 12,
-    backgroundColor: '#fff',
-    borderRadius: 26,
-    padding: 8,
-    flexDirection: 'row',
+    backgroundColor: "rgba(15,23,42,0.96)",
+    borderRadius: 28,
+    padding: 7,
+    flexDirection: "row",
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 10
+    borderColor: glass,
   },
-  tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, borderRadius: 18, gap: 2 },
-  tabItemActive: { backgroundColor: '#0F172A' },
-  tabText: { fontSize: 10, fontWeight: '900', color: '#64748B' },
-  tabTextActive: { color: '#fff' }
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 9,
+    borderRadius: 20,
+    gap: 2,
+  },
+  tabItemActive: { backgroundColor: "#93C5FD" },
+  tabText: { fontSize: 9, fontWeight: "900", color: "#64748B" },
+  tabTextActive: { color: "#08111F" },
 });
