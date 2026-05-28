@@ -1,11 +1,8 @@
 import { StatusBar } from "expo-status-bar";
-import * as Speech from "expo-speech";
-import { Audio } from "expo-av";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Alert,
   Linking,
-  Modal,
   Platform,
   Pressable,
   SafeAreaView,
@@ -13,35 +10,32 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  Vibration,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-type Tab =
-  | "home"
-  | "route"
-  | "discover"
-  | "taxi"
-  | "budget"
-  | "offers"
-  | "voice"
-  | "sos";
+type Tab = "home" | "live" | "route" | "places" | "tools" | "checklist" | "sos";
+type CountryId = "uz" | "ae" | "tr" | "kz" | "fr" | "it" | "us" | "jp";
 type Category =
+  | "breakfast"
   | "sight"
   | "museum"
   | "food"
   | "shop"
   | "nature"
-  | "family"
-  | "night"
-  | "deal";
+  | "photo"
+  | "night";
 type Crowd = "low" | "medium" | "high";
-type Mood = "calm" | "family" | "romantic" | "active" | "shopping";
-type GuideCallPhase = "incoming" | "active";
+type TravelMode =
+  | "normal"
+  | "tired"
+  | "eat"
+  | "cheap"
+  | "beautiful"
+  | "nightSafe";
 
 type Country = {
-  id: string;
+  id: CountryId;
   name: string;
   emoji: string;
   currency: string;
@@ -55,17 +49,24 @@ type Country = {
 
 type City = {
   id: string;
-  countryId: string;
+  countryId: CountryId;
   name: string;
   subtitle: string;
-  hero: string;
   taxiBaseUZS: number;
   taxiKmUZS: number;
+  cashTip: string;
+  buyList: BuyItem[];
+};
+
+type BuyItem = {
+  title: string;
+  normalPriceUZS: string;
+  where: string;
+  tip: string;
 };
 
 type Place = {
   id: string;
-  countryId: string;
   cityId: string;
   title: string;
   category: Category;
@@ -74,25 +75,17 @@ type Place = {
   lat: number;
   lng: number;
   entryUZS: number;
-  minSpendUZS: number;
+  spendUZS: number;
   durationMin: number;
   rating: number;
   crowd: Crowd;
   bestTime: string;
   openNow: boolean;
   deal?: string;
-  discountPercent?: number;
+  photoTip: string;
   cheapTip: string;
   safetyTip: string;
-  whyGo: string;
-};
-
-type SmartAlert = {
-  id: string;
-  type: "deal" | "crowd" | "safety" | "route" | "food";
-  title: string;
-  text: string;
-  placeId?: string;
+  driverText: string;
 };
 
 type RouteStep = Place & {
@@ -103,10 +96,19 @@ type RouteStep = Place & {
   transportText: string;
 };
 
-type ChatMessage = {
+type SmartNotice = {
   id: string;
-  role: "user" | "assistant";
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
   text: string;
+  kind: "deal" | "crowd" | "money" | "photo" | "food" | "safety";
+};
+
+type CheckItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
 };
 
 const countries: Country[] = [
@@ -179,795 +181,324 @@ const countries: Country[] = [
 ];
 
 const cities: City[] = [
-  // Uzbekistan
   {
     id: "tashkent",
     countryId: "uz",
     name: "Ташкент",
-    subtitle: "Базары, парки, современный город",
-    hero: "Восточный вайб + современный город",
+    subtitle: "Базары, плов, парки, современный город",
     taxiBaseUZS: 12000,
     taxiKmUZS: 3200,
+    cashTip:
+      "На день лучше иметь наличными 250 000–450 000 UZS: базар, мелкие покупки, чай, вода.",
+    buyList: [
+      {
+        title: "Сухофрукты",
+        normalPriceUZS: "60 000–180 000 UZS",
+        where: "Чорсу / Алайский базар",
+        tip: "Сначала попробуй, потом покупай. Сравни минимум 2 ряда.",
+      },
+      {
+        title: "Специи",
+        normalPriceUZS: "20 000–70 000 UZS",
+        where: "Чорсу",
+        tip: "Проси маленькую фасовку, не бери огромный набор сразу.",
+      },
+      {
+        title: "Лепешки",
+        normalPriceUZS: "5 000–15 000 UZS",
+        where: "рынок / тандыр",
+        tip: "Бери свежие утром или до обеда.",
+      },
+    ],
   },
   {
     id: "samarkand",
     countryId: "uz",
     name: "Самарканд",
-    subtitle: "Регистан, Шахи-Зинда, базары",
-    hero: "Город великих куполов и легенд",
+    subtitle: "Регистан, Шахи-Зинда, базары, сладости",
     taxiBaseUZS: 10000,
     taxiKmUZS: 3000,
+    cashTip:
+      "Для базара и сувениров лучше иметь 300 000–600 000 UZS наличными.",
+    buyList: [
+      {
+        title: "Самаркандская лепешка",
+        normalPriceUZS: "8 000–20 000 UZS",
+        where: "Сиабский базар",
+        tip: "Не бери у первой точки у входа, дальше может быть дешевле.",
+      },
+      {
+        title: "Сухофрукты и орехи",
+        normalPriceUZS: "70 000–250 000 UZS",
+        where: "Сиабский базар",
+        tip: "Сравни 3 цены, торгуйся спокойно.",
+      },
+      {
+        title: "Керамика",
+        normalPriceUZS: "80 000–350 000 UZS",
+        where: "сувенирные ряды",
+        tip: "Проверь упаковку, чтобы довезти целым.",
+      },
+    ],
   },
   {
     id: "bukhara",
     countryId: "uz",
     name: "Бухара",
-    subtitle: "Старый город, минареты, ремесла",
-    hero: "Медленный восточный город для прогулок",
+    subtitle: "Старый город, ремесла, минареты",
     taxiBaseUZS: 10000,
     taxiKmUZS: 2800,
+    cashTip:
+      "В старом городе удобно иметь 300 000 UZS наличными на чай, сувениры и мелкие входы.",
+    buyList: [
+      {
+        title: "Сюзане",
+        normalPriceUZS: "250 000–1 500 000 UZS",
+        where: "старый город",
+        tip: "Смотри качество вышивки и торгуйся.",
+      },
+      {
+        title: "Миниатюры",
+        normalPriceUZS: "100 000–500 000 UZS",
+        where: "ремесленные лавки",
+        tip: "Лучше покупать у мастера, а не у перекупщика.",
+      },
+      {
+        title: "Чай и специи",
+        normalPriceUZS: "30 000–120 000 UZS",
+        where: "рынок / лавки",
+        tip: "Проси попробовать аромат.",
+      },
+    ],
   },
   {
     id: "khiva",
     countryId: "uz",
     name: "Хива",
-    subtitle: "Ичан-Кала, крепостные стены",
-    hero: "Город-музей под открытым небом",
+    subtitle: "Ичан-Кала, крепостные стены, древний город",
     taxiBaseUZS: 9000,
     taxiKmUZS: 2600,
+    cashTip: "Внутри Ичан-Калы удобно иметь 250 000–400 000 UZS наличными.",
+    buyList: [
+      {
+        title: "Шапка / тюбетейка",
+        normalPriceUZS: "50 000–150 000 UZS",
+        where: "Ичан-Кала",
+        tip: "Покупай после сравнения 2–3 лавок.",
+      },
+      {
+        title: "Керамика",
+        normalPriceUZS: "90 000–400 000 UZS",
+        where: "мастерские",
+        tip: "Проси хорошо упаковать.",
+      },
+      {
+        title: "Деревянные изделия",
+        normalPriceUZS: "80 000–350 000 UZS",
+        where: "ремесленные ряды",
+        tip: "Проверь трещины и лак.",
+      },
+    ],
   },
-  {
-    id: "fergana",
-    countryId: "uz",
-    name: "Фергана",
-    subtitle: "Долина, ремесла, чайханы",
-    hero: "Спокойная Ферганская долина",
-    taxiBaseUZS: 9000,
-    taxiKmUZS: 2500,
-  },
-  {
-    id: "andijan",
-    countryId: "uz",
-    name: "Андижан",
-    subtitle: "Рынки, долина, локальная еда",
-    hero: "Живой город Ферганской долины",
-    taxiBaseUZS: 9000,
-    taxiKmUZS: 2500,
-  },
-  {
-    id: "namangan",
-    countryId: "uz",
-    name: "Наманган",
-    subtitle: "Парки, цветы, местная жизнь",
-    hero: "Зеленый город долины",
-    taxiBaseUZS: 9000,
-    taxiKmUZS: 2500,
-  },
-  {
-    id: "nukus",
-    countryId: "uz",
-    name: "Нукус",
-    subtitle: "Музей Савицкого, Каракалпакстан",
-    hero: "Искусство и пустынные маршруты",
-    taxiBaseUZS: 9000,
-    taxiKmUZS: 2600,
-  },
-  {
-    id: "termez",
-    countryId: "uz",
-    name: "Термез",
-    subtitle: "Буддийские памятники, юг страны",
-    hero: "Южный исторический маршрут",
-    taxiBaseUZS: 9000,
-    taxiKmUZS: 2600,
-  },
-
-  // UAE
   {
     id: "dubai",
     countryId: "ae",
     name: "Дубай",
     subtitle: "Mall, Creek, Marina, Burj Khalifa",
-    hero: "Люкс, небоскребы и старые рынки",
     taxiBaseUZS: 19000,
     taxiKmUZS: 8500,
+    cashTip:
+      "В Дубае карта удобнее, наличные нужны для рынков и мелких покупок: 150–300 AED.",
+    buyList: [
+      {
+        title: "Финики",
+        normalPriceUZS: "80 000–350 000 UZS",
+        where: "Deira / супермаркеты",
+        tip: "В супермаркете часто дешевле, чем в туристической лавке.",
+      },
+      {
+        title: "Арабские духи",
+        normalPriceUZS: "150 000–800 000 UZS",
+        where: "Deira / парфюм-рынок",
+        tip: "Торгуйся, пробуй на коже.",
+      },
+      {
+        title: "Шоколад / подарки",
+        normalPriceUZS: "70 000–300 000 UZS",
+        where: "Dubai Mall / Carrefour",
+        tip: "Для подарков супермаркет выгоднее.",
+      },
+    ],
   },
-  {
-    id: "abudhabi",
-    countryId: "ae",
-    name: "Абу-Даби",
-    subtitle: "Мечеть, Лувр, набережная",
-    hero: "Культура, море и спокойный люкс",
-    taxiBaseUZS: 18000,
-    taxiKmUZS: 8000,
-  },
-  {
-    id: "sharjah",
-    countryId: "ae",
-    name: "Шарджа",
-    subtitle: "Музеи, рынки, семейный отдых",
-    hero: "Культурная столица ОАЭ",
-    taxiBaseUZS: 17000,
-    taxiKmUZS: 7600,
-  },
-  {
-    id: "rasalkhaimah",
-    countryId: "ae",
-    name: "Рас-эль-Хайма",
-    subtitle: "Горы, пляжи, природа",
-    hero: "Горы и море рядом",
-    taxiBaseUZS: 17000,
-    taxiKmUZS: 7600,
-  },
-
-  // Turkey
   {
     id: "istanbul",
     countryId: "tr",
     name: "Стамбул",
     subtitle: "Айя-София, Босфор, Гранд базар",
-    hero: "Город между Европой и Азией",
     taxiBaseUZS: 17000,
     taxiKmUZS: 6500,
+    cashTip: "Для базара и уличной еды держи наличными 1 000–2 000 TRY.",
+    buyList: [
+      {
+        title: "Лукум",
+        normalPriceUZS: "80 000–300 000 UZS",
+        where: "Египетский базар",
+        tip: "Пробуй перед покупкой и сравни цены.",
+      },
+      {
+        title: "Чай / кофе",
+        normalPriceUZS: "60 000–250 000 UZS",
+        where: "рынок / супермаркет",
+        tip: "Супермаркет часто честнее по цене.",
+      },
+      {
+        title: "Текстиль",
+        normalPriceUZS: "150 000–700 000 UZS",
+        where: "Гранд базар",
+        tip: "Торгуйся и проверяй качество шва.",
+      },
+    ],
   },
-  {
-    id: "antalya",
-    countryId: "tr",
-    name: "Анталия",
-    subtitle: "Море, старый город, водопады",
-    hero: "Курортный город с историей",
-    taxiBaseUZS: 15000,
-    taxiKmUZS: 6000,
-  },
-  {
-    id: "ankara",
-    countryId: "tr",
-    name: "Анкара",
-    subtitle: "Музеи, столица, история",
-    hero: "Спокойная столица Турции",
-    taxiBaseUZS: 15000,
-    taxiKmUZS: 5800,
-  },
-  {
-    id: "izmir",
-    countryId: "tr",
-    name: "Измир",
-    subtitle: "Набережная, рынки, Эгейское море",
-    hero: "Морской город с легким настроением",
-    taxiBaseUZS: 15000,
-    taxiKmUZS: 5800,
-  },
-  {
-    id: "cappadocia",
-    countryId: "tr",
-    name: "Каппадокия",
-    subtitle: "Шары, долины, пещеры",
-    hero: "Самый кинематографичный регион Турции",
-    taxiBaseUZS: 16000,
-    taxiKmUZS: 6500,
-  },
-
-  // Kazakhstan
   {
     id: "almaty",
     countryId: "kz",
     name: "Алматы",
-    subtitle: "Горы, Кок-Тобе, кафе",
-    hero: "Горы рядом с городом",
+    subtitle: "Горы, Кок-Тобе, кафе, виды",
     taxiBaseUZS: 14000,
     taxiKmUZS: 4500,
+    cashTip:
+      "В Алматы карта удобна, но для мелких покупок держи 10 000–20 000 KZT.",
+    buyList: [
+      {
+        title: "Шоколад",
+        normalPriceUZS: "30 000–120 000 UZS",
+        where: "супермаркет / фирменные магазины",
+        tip: "В супермаркете выгоднее, чем в туристических местах.",
+      },
+      {
+        title: "Сувениры с горами",
+        normalPriceUZS: "50 000–250 000 UZS",
+        where: "Кок-Тобе / центр",
+        tip: "Сравни цены до покупки.",
+      },
+      {
+        title: "Чай / сладости",
+        normalPriceUZS: "40 000–180 000 UZS",
+        where: "рынок / ТРЦ",
+        tip: "Покупай в упаковке, если везешь домой.",
+      },
+    ],
   },
-  {
-    id: "astana",
-    countryId: "kz",
-    name: "Астана",
-    subtitle: "Современная архитектура",
-    hero: "Футуристичная столица",
-    taxiBaseUZS: 14000,
-    taxiKmUZS: 4500,
-  },
-  {
-    id: "shymkent",
-    countryId: "kz",
-    name: "Шымкент",
-    subtitle: "Юг, рынки, еда",
-    hero: "Теплый южный город",
-    taxiBaseUZS: 13000,
-    taxiKmUZS: 4300,
-  },
-  {
-    id: "aktau",
-    countryId: "kz",
-    name: "Актау",
-    subtitle: "Каспий, скалы, море",
-    hero: "Каспийский маршрут",
-    taxiBaseUZS: 13000,
-    taxiKmUZS: 4300,
-  },
-
-  // France
   {
     id: "paris",
     countryId: "fr",
     name: "Париж",
     subtitle: "Лувр, Эйфелева башня, Монмартр",
-    hero: "Романтика, музеи и красивые улицы",
     taxiBaseUZS: 32000,
     taxiKmUZS: 12000,
+    cashTip: "Лучше карта. Наличные 50–100 EUR на мелочи и чаевые.",
+    buyList: [
+      {
+        title: "Макароны",
+        normalPriceUZS: "120 000–500 000 UZS",
+        where: "кондитерские",
+        tip: "Бери небольшую коробку, если нужно просто попробовать.",
+      },
+      {
+        title: "Парфюм",
+        normalPriceUZS: "500 000–2 000 000 UZS",
+        where: "магазины косметики",
+        tip: "Смотри tax free и акции.",
+      },
+      {
+        title: "Сувениры",
+        normalPriceUZS: "30 000–200 000 UZS",
+        where: "не у главных достопримечательностей",
+        tip: "У Эйфелевой башни часто дороже.",
+      },
+    ],
   },
-  {
-    id: "nice",
-    countryId: "fr",
-    name: "Ницца",
-    subtitle: "Лазурный берег, море, старый город",
-    hero: "Французская Ривьера",
-    taxiBaseUZS: 30000,
-    taxiKmUZS: 11500,
-  },
-  {
-    id: "lyon",
-    countryId: "fr",
-    name: "Лион",
-    subtitle: "Гастрономия, старый город",
-    hero: "Кулинарная столица Франции",
-    taxiBaseUZS: 30000,
-    taxiKmUZS: 11200,
-  },
-  {
-    id: "marseille",
-    countryId: "fr",
-    name: "Марсель",
-    subtitle: "Порт, море, южный вайб",
-    hero: "Средиземноморская Франция",
-    taxiBaseUZS: 30000,
-    taxiKmUZS: 11200,
-  },
-
-  // Italy
   {
     id: "rome",
     countryId: "it",
     name: "Рим",
-    subtitle: "Колизей, Ватикан, фонтаны",
-    hero: "Античность, паста и прогулки",
+    subtitle: "Колизей, Ватикан, фонтаны, паста",
     taxiBaseUZS: 28000,
     taxiKmUZS: 11000,
+    cashTip:
+      "Карта работает почти везде. Наличные 50–100 EUR для кафе и мелочей.",
+    buyList: [
+      {
+        title: "Паста / соусы",
+        normalPriceUZS: "60 000–250 000 UZS",
+        where: "супермаркет / гастролавки",
+        tip: "В супермаркете дешевле и честнее.",
+      },
+      {
+        title: "Кофе",
+        normalPriceUZS: "70 000–300 000 UZS",
+        where: "кофейни / магазины",
+        tip: "Смотри локальные бренды.",
+      },
+      {
+        title: "Кожаные изделия",
+        normalPriceUZS: "300 000–2 000 000 UZS",
+        where: "магазины",
+        tip: "Проверяй качество и не покупай с рук.",
+      },
+    ],
   },
-  {
-    id: "milan",
-    countryId: "it",
-    name: "Милан",
-    subtitle: "Мода, Дуомо, шопинг",
-    hero: "Стиль, мода и архитектура",
-    taxiBaseUZS: 28000,
-    taxiKmUZS: 11000,
-  },
-  {
-    id: "venice",
-    countryId: "it",
-    name: "Венеция",
-    subtitle: "Каналы, мосты, романтика",
-    hero: "Город на воде",
-    taxiBaseUZS: 26000,
-    taxiKmUZS: 10500,
-  },
-  {
-    id: "florence",
-    countryId: "it",
-    name: "Флоренция",
-    subtitle: "Ренессанс, музеи, виды",
-    hero: "Искусство и тосканская атмосфера",
-    taxiBaseUZS: 26000,
-    taxiKmUZS: 10500,
-  },
-
-  // USA
-  {
-    id: "nyc",
-    countryId: "us",
-    name: "Нью-Йорк",
-    subtitle: "Times Square, парки, музеи",
-    hero: "Большой город, энергия и события",
-    taxiBaseUZS: 35000,
-    taxiKmUZS: 15000,
-  },
-  {
-    id: "losangeles",
-    countryId: "us",
-    name: "Лос-Анджелес",
-    subtitle: "Пляжи, Голливуд, виды",
-    hero: "Кино, океан и солнце",
-    taxiBaseUZS: 35000,
-    taxiKmUZS: 15000,
-  },
-  {
-    id: "miami",
-    countryId: "us",
-    name: "Майами",
-    subtitle: "Пляжи, арт-деко, ночная жизнь",
-    hero: "Океан, музыка и яркость",
-    taxiBaseUZS: 34000,
-    taxiKmUZS: 14500,
-  },
-  {
-    id: "lasvegas",
-    countryId: "us",
-    name: "Лас-Вегас",
-    subtitle: "Шоу, казино, огни",
-    hero: "Город развлечений",
-    taxiBaseUZS: 33000,
-    taxiKmUZS: 14000,
-  },
-  {
-    id: "sanfrancisco",
-    countryId: "us",
-    name: "Сан-Франциско",
-    subtitle: "Мост, холмы, залив",
-    hero: "Виды, океан и техно-вайб",
-    taxiBaseUZS: 35000,
-    taxiKmUZS: 15000,
-  },
-
-  // Japan
   {
     id: "tokyo",
     countryId: "jp",
     name: "Токио",
-    subtitle: "Сибуя, храмы, технологии",
-    hero: "Будущее, традиции и идеальный сервис",
+    subtitle: "Сибуя, храмы, технологии, еда",
     taxiBaseUZS: 30000,
     taxiKmUZS: 12000,
-  },
-  {
-    id: "kyoto",
-    countryId: "jp",
-    name: "Киото",
-    subtitle: "Храмы, сады, традиции",
-    hero: "Традиционная Япония",
-    taxiBaseUZS: 28000,
-    taxiKmUZS: 11000,
-  },
-  {
-    id: "osaka",
-    countryId: "jp",
-    name: "Осака",
-    subtitle: "Еда, огни, замок",
-    hero: "Город еды и развлечений",
-    taxiBaseUZS: 28000,
-    taxiKmUZS: 11000,
-  },
-  {
-    id: "nara",
-    countryId: "jp",
-    name: "Нара",
-    subtitle: "Олени, храмы, парки",
-    hero: "Спокойный древний город",
-    taxiBaseUZS: 26000,
-    taxiKmUZS: 10000,
-  },
-];
-
-const places: Place[] = [
-  {
-    id: "tashkent-hazrati",
-    countryId: "uz",
-    cityId: "tashkent",
-    title: "Хазрати Имам",
-    category: "sight",
-    subtitle: "Исторический комплекс старого города",
-    address: "Старый город",
-    lat: 41.3371,
-    lng: 69.2406,
-    entryUZS: 30000,
-    minSpendUZS: 0,
-    durationMin: 70,
-    rating: 4.8,
-    crowd: "medium",
-    bestTime: "10:00–12:00",
-    openNow: true,
-    cheapTip: "Сувениры лучше сравнить в 2–3 местах.",
-    safetyTip: "Спокойная зона, но телефон держи ближе к себе.",
-    whyGo: "Хорошая первая точка для знакомства со старым городом.",
-  },
-  {
-    id: "tashkent-chorsu",
-    countryId: "uz",
-    cityId: "tashkent",
-    title: "Чорсу базар",
-    category: "shop",
-    subtitle: "Специи, лепешки, сувениры, восточный рынок",
-    address: "м. Чорсу",
-    lat: 41.3267,
-    lng: 69.2352,
-    entryUZS: 0,
-    minSpendUZS: 65000,
-    durationMin: 90,
-    rating: 4.6,
-    crowd: "high",
-    bestTime: "11:00–14:00",
-    openNow: true,
-    deal: "Сегодня скидки на сухофрукты до 20%",
-    discountPercent: 20,
-    cheapTip: "Торгуйся спокойно. Нормально просить минус 15–25%.",
-    safetyTip: "Людно, аккуратнее с кошельком и телефоном.",
-    whyGo: "Живой рынок города, хороший для сувениров и фото.",
-  },
-  {
-    id: "tashkent-plov",
-    countryId: "uz",
-    cityId: "tashkent",
-    title: "Центр плова",
-    category: "food",
-    subtitle: "Популярный плов, быстро и понятно туристу",
-    address: "район телевышки",
-    lat: 41.3457,
-    lng: 69.2848,
-    entryUZS: 0,
-    minSpendUZS: 85000,
-    durationMin: 60,
-    rating: 4.5,
-    crowd: "high",
-    bestTime: "12:00–14:00",
-    openNow: true,
-    deal: "Лучшее время до 13:00 — больше выбор",
-    cheapTip: "Приходи днем: вечером хорошие позиции могут закончиться.",
-    safetyTip: "Выбирай место с большим потоком гостей.",
-    whyGo: "Понятная точка для первого плова в Ташкенте.",
-  },
-  {
-    id: "tashkent-magic",
-    countryId: "uz",
-    cityId: "tashkent",
-    title: "Magic City",
-    category: "family",
-    subtitle: "Вечерняя прогулка, кафе и фото",
-    address: "Алмазар",
-    lat: 41.3045,
-    lng: 69.2447,
-    entryUZS: 0,
-    minSpendUZS: 120000,
-    durationMin: 90,
-    rating: 4.7,
-    crowd: "medium",
-    bestTime: "18:30–21:00",
-    openNow: true,
-    deal: "Вечером красивые фото бесплатно",
-    cheapTip: "Можно просто гулять бесплатно, кафе выбирать по меню у входа.",
-    safetyTip: "Комфортно вечером, обратно лучше ехать на такси.",
-    whyGo: "Удобная вечерняя точка для семьи и фото.",
-  },
-  {
-    id: "samarkand-registan",
-    countryId: "uz",
-    cityId: "samarkand",
-    title: "Регистан",
-    category: "sight",
-    subtitle: "Главный символ Самарканда",
-    address: "Registon ko‘chasi",
-    lat: 39.6542,
-    lng: 66.975,
-    entryUZS: 70000,
-    minSpendUZS: 0,
-    durationMin: 110,
-    rating: 4.9,
-    crowd: "high",
-    bestTime: "09:00–11:30",
-    openNow: true,
-    cheapTip: "Билет фиксированный, сувениры рядом часто дороже.",
-    safetyTip: "Туристическая зона, проверяй цены заранее.",
-    whyGo: "Главная вау-точка города.",
-  },
-  {
-    id: "samarkand-siab",
-    countryId: "uz",
-    cityId: "samarkand",
-    title: "Сиабский базар",
-    category: "shop",
-    subtitle: "Лепешки, сладости, специи, сувениры",
-    address: "рядом с Биби-Ханым",
-    lat: 39.6616,
-    lng: 66.9805,
-    entryUZS: 0,
-    minSpendUZS: 80000,
-    durationMin: 80,
-    rating: 4.7,
-    crowd: "medium",
-    bestTime: "12:00–14:00",
-    openNow: true,
-    deal: "Сладости дешевле в дальних рядах",
-    cheapTip: "Сначала пробуй, потом покупай. Сравни 2 ряда.",
-    safetyTip: "Торгуйся спокойно, не показывай много наличных.",
-    whyGo: "Хорошая точка для сладостей, специй и сувениров.",
-  },
-  {
-    id: "samarkand-shahi",
-    countryId: "uz",
-    cityId: "samarkand",
-    title: "Шахи-Зинда",
-    category: "museum",
-    subtitle: "Красивые мавзолеи и фото-точки",
-    address: "улица Шахи-Зинда",
-    lat: 39.6622,
-    lng: 66.987,
-    entryUZS: 60000,
-    minSpendUZS: 0,
-    durationMin: 85,
-    rating: 4.9,
-    crowd: "medium",
-    bestTime: "15:30–17:30",
-    openNow: true,
-    cheapTip: "Лучшее фото без доплат — ближе к вечеру.",
-    safetyTip: "Священное место: тише, уважительная одежда.",
-    whyGo: "Одна из самых красивых улиц мавзолеев в регионе.",
-  },
-  {
-    id: "dubai-mall",
-    countryId: "ae",
-    cityId: "dubai",
-    title: "Dubai Mall",
-    category: "shop",
-    subtitle: "Шопинг, фонтаны, аквариум, рестораны",
-    address: "Downtown Dubai",
-    lat: 25.1972,
-    lng: 55.2796,
-    entryUZS: 0,
-    minSpendUZS: 220000,
-    durationMin: 120,
-    rating: 4.8,
-    crowd: "high",
-    bestTime: "10:00–13:00",
-    openNow: true,
-    deal: "Фудкорт дешевле ресторанов с видом",
-    cheapTip: "Еда в фудкорте дешевле ресторанов с видом.",
-    safetyTip: "Безопасно, но легко потратить лишнее.",
-    whyGo: "Крупная туристическая точка с множеством активностей.",
-  },
-  {
-    id: "istanbul-hagia",
-    countryId: "tr",
-    cityId: "istanbul",
-    title: "Айя-София",
-    category: "museum",
-    subtitle: "Главная историческая точка города",
-    address: "Sultanahmet",
-    lat: 41.0086,
-    lng: 28.9802,
-    entryUZS: 180000,
-    minSpendUZS: 0,
-    durationMin: 100,
-    rating: 4.9,
-    crowd: "high",
-    bestTime: "09:00–11:00",
-    openNow: true,
-    cheapTip: "Приходи рано: меньше очереди.",
-    safetyTip: "Много туристов, следи за вещами.",
-    whyGo: "Одна из главных исторических точек мира.",
-  },
-  {
-    id: "paris-louvre",
-    countryId: "fr",
-    cityId: "paris",
-    title: "Лувр",
-    category: "museum",
-    subtitle: "Один из главных музеев мира",
-    address: "Rue de Rivoli",
-    lat: 48.8606,
-    lng: 2.3376,
-    entryUZS: 280000,
-    minSpendUZS: 50000,
-    durationMin: 150,
-    rating: 4.9,
-    crowd: "high",
-    bestTime: "09:00–11:00",
-    openNow: true,
-    cheapTip: "Покупай билет заранее, чтобы не терять время в очереди.",
-    safetyTip: "У входов бывают карманники.",
-    whyGo: "Главная музейная точка Парижа.",
-  },
-  {
-    id: "tokyo-shibuya",
-    countryId: "jp",
-    cityId: "tokyo",
-    title: "Shibuya Crossing",
-    category: "sight",
-    subtitle: "Знаменитый перекресток и неон",
-    address: "Shibuya",
-    lat: 35.6595,
-    lng: 139.7005,
-    entryUZS: 0,
-    minSpendUZS: 110000,
-    durationMin: 80,
-    rating: 4.7,
-    crowd: "high",
-    bestTime: "18:00–21:00",
-    openNow: true,
-    deal: "Бесплатная фото-точка, траты только на кафе",
-    cheapTip: "Лучшие фото можно сделать бесплатно с верхних этажей кафе.",
-    safetyTip: "Очень людно, следи за группой.",
-    whyGo: "Энергия современного Токио.",
-  },
-];
-
-const fallbackTemplates: Omit<
-  Place,
-  "id" | "countryId" | "cityId" | "lat" | "lng"
->[] = [
-  {
-    title: "Главная площадь / исторический центр",
-    category: "sight",
-    subtitle: "Стартовая точка для первого знакомства с городом",
-    address: "центр города",
-    entryUZS: 0,
-    minSpendUZS: 50000,
-    durationMin: 80,
-    rating: 4.6,
-    crowd: "medium",
-    bestTime: "10:00–12:00",
-    openNow: true,
-    deal: "Бесплатная прогулка по центру",
-    cheapTip:
-      "Сначала осмотрись бесплатно, не покупай сувениры в первой лавке.",
-    safetyTip: "В туристической зоне следи за телефоном и документами.",
-    whyGo: "Позволяет быстро понять атмосферу города.",
-  },
-  {
-    title: "Главный музей города",
-    category: "museum",
-    subtitle: "Культура, история и базовое понимание страны",
-    address: "музейный квартал",
-    entryUZS: 90000,
-    minSpendUZS: 0,
-    durationMin: 100,
-    rating: 4.5,
-    crowd: "medium",
-    bestTime: "11:00–14:00",
-    openNow: true,
-    cheapTip: "Проверь бесплатные дни и студенческие скидки.",
-    safetyTip: "Проверь правила фото и хранения сумок.",
-    whyGo: "Хорошая точка для смысла, а не только фото.",
-  },
-  {
-    title: "Локальный рынок / food street",
-    category: "food",
-    subtitle: "Еда, напитки, сувениры и местная жизнь",
-    address: "популярный рынок",
-    entryUZS: 0,
-    minSpendUZS: 90000,
-    durationMin: 75,
-    rating: 4.4,
-    crowd: "high",
-    bestTime: "12:00–15:00",
-    openNow: true,
-    deal: "Еда дешевле в местах, где сидят местные",
-    cheapTip: "Сравни цены, выбирай места с большим потоком местных.",
-    safetyTip: "Людно: кошелек и телефон держи ближе.",
-    whyGo: "Самый простой способ почувствовать город через еду.",
-  },
-  {
-    title: "Парк / набережная",
-    category: "nature",
-    subtitle: "Спокойная прогулка без больших расходов",
-    address: "центральный парк",
-    entryUZS: 0,
-    minSpendUZS: 30000,
-    durationMin: 70,
-    rating: 4.3,
-    crowd: "low",
-    bestTime: "17:00–20:00",
-    openNow: true,
-    deal: "Бесплатная вечерняя прогулка",
-    cheapTip: "Можно провести время почти бесплатно.",
-    safetyTip: "Вечером держись освещенных зон.",
-    whyGo: "Хорошо разгружает маршрут и бюджет.",
-  },
-  {
-    title: "Торговая улица / сувениры",
-    category: "shop",
-    subtitle: "Подарки, локальные товары, витрины",
-    address: "торговый район",
-    entryUZS: 0,
-    minSpendUZS: 110000,
-    durationMin: 80,
-    rating: 4.2,
-    crowd: "medium",
-    bestTime: "15:00–18:00",
-    openNow: true,
-    deal: "Сравни цены в 3 магазинах — можно сэкономить до 30%",
-    cheapTip: "Не покупай в первой точке, сравни минимум 3 цены.",
-    safetyTip: "Проверяй чек и упаковку.",
-    whyGo: "Полезно для подарков и понимания цен.",
-  },
-  ,
-  {
-    title: "Кофейня / завтрак в центре",
-    category: "food",
-    subtitle: "Легкая утренняя точка перед прогулкой",
-    address: "центр города",
-    entryUZS: 0,
-    minSpendUZS: 70000,
-    durationMin: 50,
-    rating: 4.4,
-    crowd: "medium",
-    bestTime: "09:00–10:30",
-    openNow: true,
-    deal: "Комбо-завтрак часто дешевле отдельных позиций",
-    cheapTip: "Смотри сет-меню и завтраки до 11:00.",
-    safetyTip: "Выбирай места с рейтингом и понятным меню.",
-    whyGo: "Хорошее начало маршрута на весь день.",
-  },
-  {
-    title: "Смотровая площадка / панорамная точка",
-    category: "sight",
-    subtitle: "Вид на город и красивые фото",
-    address: "панорамная зона",
-    entryUZS: 50000,
-    minSpendUZS: 20000,
-    durationMin: 60,
-    rating: 4.5,
-    crowd: "medium",
-    bestTime: "16:30–18:00",
-    openNow: true,
-    deal: "Лучшее фото бесплатно на закате",
-    cheapTip: "Приходи до заката, чтобы не платить за дорогие кафе с видом.",
-    safetyTip: "Не подходи к краям и держи телефон крепко.",
-    whyGo: "Добавляет вау-эффект в маршрут.",
-  },
-  {
-    title: "Вечерняя улица / прогулочная зона",
-    category: "night",
-    subtitle: "Огни, кафе, музыка и финал дня",
-    address: "вечерний район",
-    entryUZS: 0,
-    minSpendUZS: 100000,
-    durationMin: 90,
-    rating: 4.5,
-    crowd: "medium",
-    bestTime: "19:00–21:30",
-    openNow: true,
-    deal: "Вечером часто бывают акции на напитки и десерты",
-    cheapTip: "Смотри меню у входа и не садись без цен.",
-    safetyTip: "После 22:00 лучше возвращаться на такси.",
-    whyGo: "Красивый финал маршрута на весь день.",
-  },
-  {
-    title: "Локальная кондитерская / десерт",
-    category: "food",
-    subtitle: "Небольшая вкусная пауза",
-    address: "центр города",
-    entryUZS: 0,
-    minSpendUZS: 45000,
-    durationMin: 35,
-    rating: 4.3,
-    crowd: "low",
-    bestTime: "15:00–16:00",
-    openNow: true,
-    deal: "Десерт дня может быть дешевле",
-    cheapTip: "Бери локальный десерт, не туристический набор.",
-    safetyTip: "Проверяй состав, если есть аллергии.",
-    whyGo: "Дает отдых и не ломает бюджет.",
+    cashTip: "В Японии наличные всё еще полезны: держи 10 000–20 000 JPY.",
+    buyList: [
+      {
+        title: "Снеки / сладости",
+        normalPriceUZS: "40 000–200 000 UZS",
+        where: "Don Quijote / convenience stores",
+        tip: "Покупай наборами, выгоднее.",
+      },
+      {
+        title: "Косметика",
+        normalPriceUZS: "100 000–700 000 UZS",
+        where: "drugstores",
+        tip: "Смотри tax free.",
+      },
+      {
+        title: "Аниме-сувениры",
+        normalPriceUZS: "80 000–500 000 UZS",
+        where: "Akihabara",
+        tip: "Сравни новые и second-hand магазины.",
+      },
+    ],
   },
 ];
 
 const categoryLabels: Record<Category, string> = {
-  sight: "Достопримеч.",
+  breakfast: "Завтрак",
+  sight: "Места",
   museum: "Музеи",
   food: "Еда",
   shop: "Магазины",
   nature: "Природа",
-  family: "Семья",
+  photo: "Фото",
   night: "Вечер",
-  deal: "Акции",
 };
 
 const categoryIcons: Record<Category, keyof typeof Ionicons.glyphMap> = {
+  breakfast: "cafe",
   sight: "camera",
   museum: "business",
   food: "restaurant",
   shop: "bag",
   nature: "leaf",
-  family: "people",
+  photo: "aperture",
   night: "moon",
-  deal: "pricetag",
 };
 
 const crowdLabels: Record<Crowd, string> = {
@@ -993,12 +524,357 @@ const ratesToUZS: Record<string, number> = {
   JPY: 90,
 };
 
-function countryById(id: string) {
+const fullDayTemplates: Omit<Place, "id" | "cityId" | "lat" | "lng">[] = [
+  {
+    title: "Завтрак в локальной кофейне",
+    category: "breakfast",
+    subtitle: "Начать день спокойно, проверить план и зарядить телефон",
+    address: "центр города",
+    entryUZS: 0,
+    spendUZS: 70000,
+    durationMin: 45,
+    rating: 4.4,
+    crowd: "medium",
+    bestTime: "09:00–10:00",
+    openNow: true,
+    deal: "Комбо-завтрак обычно дешевле отдельных позиций",
+    photoTip: "Сними кофе, улицу у окна и короткий кадр с картой маршрута.",
+    cheapTip: "Ищи завтрак-комбо до 11:00.",
+    safetyTip: "Не оставляй телефон на краю стола.",
+    driverText:
+      "Пожалуйста, отвезите меня в ближайшую хорошую кофейню в центре.",
+  },
+  {
+    title: "Главная площадь / исторический центр",
+    category: "sight",
+    subtitle: "Первая большая точка города",
+    address: "исторический центр",
+    entryUZS: 0,
+    spendUZS: 30000,
+    durationMin: 80,
+    rating: 4.7,
+    crowd: "medium",
+    bestTime: "10:15–11:30",
+    openNow: true,
+    photoTip:
+      "Не снимай только прямо по центру. Отойди в угол — кадр будет глубже.",
+    cheapTip: "Сначала осмотри бесплатно, сувениры покупай позже.",
+    safetyTip: "В туристических местах держи документы отдельно от денег.",
+    driverText: "Пожалуйста, отвезите меня в исторический центр города.",
+  },
+  {
+    title: "Главный музей города",
+    category: "museum",
+    subtitle: "Культура, история и смысл поездки",
+    address: "музейный квартал",
+    entryUZS: 90000,
+    spendUZS: 0,
+    durationMin: 95,
+    rating: 4.5,
+    crowd: "medium",
+    bestTime: "11:45–13:00",
+    openNow: true,
+    photoTip: "Сними вход, детали интерьера и 2–3 крупных плана экспонатов.",
+    cheapTip: "Проверь бесплатные дни и скидки.",
+    safetyTip: "Проверь правила фото и хранения сумок.",
+    driverText: "Пожалуйста, отвезите меня в главный музей города.",
+  },
+  {
+    title: "Обед в локальном месте",
+    category: "food",
+    subtitle: "Не туристический ресторан, а место с нормальными ценами",
+    address: "район с кафе",
+    entryUZS: 0,
+    spendUZS: 110000,
+    durationMin: 70,
+    rating: 4.4,
+    crowd: "high",
+    bestTime: "13:15–14:15",
+    openNow: true,
+    deal: "Обеденное меню часто выгоднее основного",
+    photoTip: "Сними блюдо сверху, потом короткий кадр улицы рядом.",
+    cheapTip: "Смотри места, где сидят местные. Не садись без меню с ценами.",
+    safetyTip: "Пей бутилированную воду, если город незнакомый.",
+    driverText: "Пожалуйста, отвезите меня в хорошее локальное кафе рядом.",
+  },
+  {
+    title: "Рынок / сувенирная улица",
+    category: "shop",
+    subtitle: "Купить подарки и почувствовать местный ритм",
+    address: "рынок / торговая улица",
+    entryUZS: 0,
+    spendUZS: 140000,
+    durationMin: 85,
+    rating: 4.5,
+    crowd: "high",
+    bestTime: "14:45–16:00",
+    openNow: true,
+    deal: "Если берешь 2–3 товара, проси скидку",
+    photoTip: "Снимай ряды, детали товаров, руки мастера, специи или ткань.",
+    cheapTip: "Сравни минимум 3 цены. Первая цена часто туристическая.",
+    safetyTip: "Не показывай крупные деньги. Держи сумку спереди.",
+    driverText:
+      "Пожалуйста, отвезите меня на главный рынок или сувенирную улицу.",
+  },
+  {
+    title: "Пауза: десерт / чай / кофе",
+    category: "food",
+    subtitle: "Небольшой отдых, чтобы не устать",
+    address: "уютное кафе",
+    entryUZS: 0,
+    spendUZS: 55000,
+    durationMin: 40,
+    rating: 4.3,
+    crowd: "low",
+    bestTime: "16:15–17:00",
+    openNow: true,
+    deal: "Десерт дня может быть дешевле",
+    photoTip: "Сними короткий кадр еды и эмоцию отдыха.",
+    cheapTip: "Бери локальный десерт, не туристический сет.",
+    safetyTip: "Проверь состав, если есть аллергии.",
+    driverText: "Пожалуйста, отвезите меня в спокойное кафе рядом.",
+  },
+  {
+    title: "Смотровая / красивая фото-точка",
+    category: "photo",
+    subtitle: "Кадры для памяти, Reels и сторис",
+    address: "панорамная точка",
+    entryUZS: 50000,
+    spendUZS: 20000,
+    durationMin: 70,
+    rating: 4.6,
+    crowd: "medium",
+    bestTime: "17:30–18:45",
+    openNow: true,
+    photoTip:
+      "Лучший кадр — за 30–40 минут до заката. Снимай против света аккуратно.",
+    cheapTip: "Не обязательно садиться в дорогое кафе с видом.",
+    safetyTip: "Не подходи к краям ради фото.",
+    driverText: "Пожалуйста, отвезите меня на ближайшую смотровую площадку.",
+  },
+  {
+    title: "Вечерняя прогулочная улица",
+    category: "night",
+    subtitle: "Огни, музыка, атмосфера и финал дня",
+    address: "вечерний район",
+    entryUZS: 0,
+    spendUZS: 100000,
+    durationMin: 90,
+    rating: 4.5,
+    crowd: "medium",
+    bestTime: "19:15–21:00",
+    openNow: true,
+    deal: "Вечером часто бывают акции на напитки и десерты",
+    photoTip: "Снимай огни, витрины, движение людей и общий план улицы.",
+    cheapTip: "Смотри меню у входа, не садись без цен.",
+    safetyTip: "После 22:00 лучше возвращаться на такси.",
+    driverText: "Пожалуйста, отвезите меня на вечернюю прогулочную улицу.",
+  },
+  {
+    title: "Возврат в отель / безопасная точка",
+    category: "night",
+    subtitle: "Завершение маршрута без лишнего риска",
+    address: "отель / безопасная зона",
+    entryUZS: 0,
+    spendUZS: 0,
+    durationMin: 20,
+    rating: 4.9,
+    crowd: "low",
+    bestTime: "21:15–22:00",
+    openNow: true,
+    photoTip: "Сними финальный кадр дня: улица, такси, вид из окна.",
+    cheapTip: "Если поздно, экономия на пешей прогулке не стоит риска.",
+    safetyTip: "Лучше вызвать такси, особенно если район незнакомый.",
+    driverText: "Пожалуйста, отвезите меня в мой отель.",
+  },
+];
+
+const realPlaces: Place[] = [
+  {
+    id: "tashkent-hazrati",
+    cityId: "tashkent",
+    title: "Хазрати Имам",
+    category: "sight",
+    subtitle: "Исторический комплекс старого города",
+    address: "Старый город",
+    lat: 41.3371,
+    lng: 69.2406,
+    entryUZS: 30000,
+    spendUZS: 0,
+    durationMin: 70,
+    rating: 4.8,
+    crowd: "medium",
+    bestTime: "10:00–12:00",
+    openNow: true,
+    photoTip: "Лучше снимать общий двор и детали арок.",
+    cheapTip: "Сувениры рядом сравнивай в 2–3 местах.",
+    safetyTip: "Спокойная зона, но телефон держи ближе к себе.",
+    driverText: "Пожалуйста, отвезите меня в комплекс Хазрати Имам.",
+  },
+  {
+    id: "tashkent-chorsu",
+    cityId: "tashkent",
+    title: "Чорсу базар",
+    category: "shop",
+    subtitle: "Специи, лепешки, сувениры, восточный рынок",
+    address: "м. Чорсу",
+    lat: 41.3267,
+    lng: 69.2352,
+    entryUZS: 0,
+    spendUZS: 65000,
+    durationMin: 90,
+    rating: 4.6,
+    crowd: "high",
+    bestTime: "11:00–14:00",
+    openNow: true,
+    deal: "Скидки на сухофрукты при покупке от 2 кг",
+    photoTip: "Снимай купол рынка, специи крупным планом, лепешки из тандыра.",
+    cheapTip: "Торгуйся спокойно. Нормально просить минус 15–25%.",
+    safetyTip: "Людно, аккуратнее с кошельком и телефоном.",
+    driverText: "Пожалуйста, отвезите меня на Чорсу базар.",
+  },
+  {
+    id: "tashkent-plov",
+    cityId: "tashkent",
+    title: "Центр плова",
+    category: "food",
+    subtitle: "Популярный плов, быстро и понятно туристу",
+    address: "район телевышки",
+    lat: 41.3457,
+    lng: 69.2848,
+    entryUZS: 0,
+    spendUZS: 85000,
+    durationMin: 60,
+    rating: 4.5,
+    crowd: "high",
+    bestTime: "12:00–14:00",
+    openNow: true,
+    deal: "Лучше приходить до 13:00 — больше выбор",
+    photoTip: "Сними огромные казаны, порцию плова и чай.",
+    cheapTip: "Обычная порция выгоднее больших сетов.",
+    safetyTip: "Выбирай место с большим потоком гостей.",
+    driverText: "Пожалуйста, отвезите меня в Центр плова.",
+  },
+  {
+    id: "samarkand-registan",
+    cityId: "samarkand",
+    title: "Регистан",
+    category: "sight",
+    subtitle: "Главный символ Самарканда",
+    address: "Registon ko‘chasi",
+    lat: 39.6542,
+    lng: 66.975,
+    entryUZS: 70000,
+    spendUZS: 0,
+    durationMin: 110,
+    rating: 4.9,
+    crowd: "high",
+    bestTime: "09:00–11:30",
+    openNow: true,
+    photoTip: "Снимай утром сбоку, а вечером — общий план с подсветкой.",
+    cheapTip: "Сувениры рядом часто дороже, покупай позже на базаре.",
+    safetyTip: "Туристическая зона, проверяй цены заранее.",
+    driverText: "Пожалуйста, отвезите меня на площадь Регистан.",
+  },
+  {
+    id: "samarkand-siab",
+    cityId: "samarkand",
+    title: "Сиабский базар",
+    category: "shop",
+    subtitle: "Лепешки, сладости, специи, сувениры",
+    address: "рядом с Биби-Ханым",
+    lat: 39.6616,
+    lng: 66.9805,
+    entryUZS: 0,
+    spendUZS: 80000,
+    durationMin: 80,
+    rating: 4.7,
+    crowd: "medium",
+    bestTime: "12:00–14:00",
+    openNow: true,
+    deal: "Сладости дешевле в дальних рядах",
+    photoTip: "Снимай лепешки, сухофрукты, продавцов и общий проход.",
+    cheapTip: "Сначала пробуй, потом покупай. Сравни 2–3 ряда.",
+    safetyTip: "Не показывай много наличных.",
+    driverText: "Пожалуйста, отвезите меня на Сиабский базар.",
+  },
+  {
+    id: "samarkand-shahi",
+    cityId: "samarkand",
+    title: "Шахи-Зинда",
+    category: "museum",
+    subtitle: "Мавзолеи, бирюзовая плитка, фото-точки",
+    address: "улица Шахи-Зинда",
+    lat: 39.6622,
+    lng: 66.987,
+    entryUZS: 60000,
+    spendUZS: 0,
+    durationMin: 85,
+    rating: 4.9,
+    crowd: "medium",
+    bestTime: "15:30–17:30",
+    openNow: true,
+    photoTip: "Лучший кадр — вдоль узкого прохода с плиткой по бокам.",
+    cheapTip: "Фото красивее ближе к вечеру, без дополнительных расходов.",
+    safetyTip: "Священное место: уважительная одежда и спокойное поведение.",
+    driverText: "Пожалуйста, отвезите меня в Шахи-Зинда.",
+  },
+  {
+    id: "dubai-creek",
+    cityId: "dubai",
+    title: "Dubai Creek",
+    category: "sight",
+    subtitle: "Старый город, лодки abra и рынки",
+    address: "Deira",
+    lat: 25.2684,
+    lng: 55.2972,
+    entryUZS: 10000,
+    spendUZS: 60000,
+    durationMin: 90,
+    rating: 4.6,
+    crowd: "medium",
+    bestTime: "17:00–20:00",
+    openNow: true,
+    deal: "Abra стоит дешево и дает атмосферу старого Дубая",
+    photoTip: "Снимай лодки на закате и отражения на воде.",
+    cheapTip:
+      "Еда и сувениры в старом районе часто дешевле, чем у небоскребов.",
+    safetyTip: "Торгуйся на рынках, цены могут завышать.",
+    driverText: "Please take me to Dubai Creek.",
+  },
+  {
+    id: "istanbul-hagia",
+    cityId: "istanbul",
+    title: "Айя-София",
+    category: "museum",
+    subtitle: "Главная историческая точка города",
+    address: "Sultanahmet",
+    lat: 41.0086,
+    lng: 28.9802,
+    entryUZS: 180000,
+    spendUZS: 0,
+    durationMin: 100,
+    rating: 4.9,
+    crowd: "high",
+    bestTime: "09:00–11:00",
+    openNow: true,
+    photoTip: "Снимай с площади утром, пока меньше людей.",
+    cheapTip: "Приходи рано: меньше очереди и меньше лишних расходов.",
+    safetyTip: "Много туристов, следи за вещами.",
+    driverText: "Please take me to Hagia Sophia, Sultanahmet.",
+  },
+];
+
+function getCountry(id: CountryId) {
   return countries.find((item) => item.id === id) ?? countries[0];
 }
 
-function cityById(id: string) {
+function getCity(id: string) {
   return cities.find((item) => item.id === id) ?? cities[0];
+}
+
+function getCities(countryId: CountryId) {
+  return cities.filter((item) => item.countryId === countryId);
 }
 
 function convertFromUZS(valueUZS: number, country: Country) {
@@ -1010,230 +886,173 @@ function money(valueUZS: number, country: Country) {
   return `${convertFromUZS(valueUZS, country).toLocaleString("ru-RU")} ${country.currency}`;
 }
 
-function budgetToUZS(value: string, country: Country) {
+function parseBudget(value: string, country: Country) {
   const numeric = Number(value.replace(/\D/g, ""));
-  return Math.max(0, numeric * (ratesToUZS[country.currency] ?? 1));
+  return numeric * (ratesToUZS[country.currency] ?? 1);
 }
 
 function distanceKm(a: Place, b: Place) {
-  return Math.max(
-    1,
-    Math.round(
-      Math.sqrt(Math.pow(a.lat - b.lat, 2) + Math.pow(a.lng - b.lng, 2)) * 110,
-    ),
-  );
+  const raw =
+    Math.sqrt(Math.pow(a.lat - b.lat, 2) + Math.pow(a.lng - b.lng, 2)) * 110;
+  return Math.max(1, Math.round(raw));
 }
 
-function taxiCost(distance: number, city: City) {
-  return Math.round(city.taxiBaseUZS + distance * city.taxiKmUZS);
+function taxiPrice(city: City, km: number) {
+  return Math.round(city.taxiBaseUZS + city.taxiKmUZS * km);
 }
 
-function fallbackPlaces(
-  country: Country,
-  city: City,
-  customName: string,
-): Place[] {
-  return fallbackTemplates.map((template, index) => ({
+function createFullDayPlaces(city: City, customCityName: string) {
+  const real = realPlaces.filter((place) => place.cityId === city.id);
+  const fill = fullDayTemplates.map((template, index) => ({
     ...template,
-    id: `fallback-${city.id}-${index}`,
-    countryId: country.id,
+    id: `template-${city.id}-${index}`,
     cityId: city.id,
     lat: 41 + index * 0.012,
     lng: 69 + index * 0.012,
-    address: `${customName}, ${template.address}`,
+    address: `${customCityName}, ${template.address}`,
   }));
-}
 
-function placesForCity(country: Country, city: City, customName: string) {
-  const real = places.filter((place) => place.cityId === city.id);
-  return real.length ? real : fallbackPlaces(country, city, customName);
-}
-
-function buildSmartRoute(params: {
-  items: Place[];
-  city: City;
-  budgetUZS: number;
-  selectedCategories: Category[];
-  mood: Mood;
-}) {
-  const { items, city, budgetUZS, selectedCategories, mood } = params;
-
-  const times = [
-    "09:00",
-    "10:15",
-    "11:45",
-    "13:15",
-    "14:45",
-    "16:15",
-    "17:45",
-    "19:15",
-    "20:45",
-    "22:00",
-  ];
-
-  const ranked = [...items].sort((a, b) => {
-    const aCategory = selectedCategories.includes(a.category) ? 2 : 0;
-    const bCategory = selectedCategories.includes(b.category) ? 2 : 0;
-    const aCalm = a.crowd === "low" ? 1 : a.crowd === "medium" ? 0.4 : 0;
-    const bCalm = b.crowd === "low" ? 1 : b.crowd === "medium" ? 0.4 : 0;
-    const aDeal = a.deal ? 0.8 : 0;
-    const bDeal = b.deal ? 0.8 : 0;
-    const aMood =
-      mood === "family" && a.category === "family"
-        ? 1.2
-        : mood === "shopping" && a.category === "shop"
-          ? 1.2
-          : mood === "calm" && a.crowd === "low"
-            ? 1.2
-            : mood === "romantic" &&
-                ["sight", "nature", "night"].includes(a.category)
-              ? 1
-              : mood === "active" &&
-                  ["sight", "museum", "food"].includes(a.category)
-                ? 0.8
-                : 0;
-    const bMood =
-      mood === "family" && b.category === "family"
-        ? 1.2
-        : mood === "shopping" && b.category === "shop"
-          ? 1.2
-          : mood === "calm" && b.crowd === "low"
-            ? 1.2
-            : mood === "romantic" &&
-                ["sight", "nature", "night"].includes(b.category)
-              ? 1
-              : mood === "active" &&
-                  ["sight", "museum", "food"].includes(b.category)
-                ? 0.8
-                : 0;
-
+  const merged = [...real, ...fill];
+  return merged.filter((place, index, array) => {
     return (
-      bCategory +
-      b.rating +
-      bCalm +
-      bDeal +
-      bMood -
-      (aCategory + a.rating + aCalm + aDeal + aMood)
-    );
-  });
-
-  const routePool: Place[] = [...ranked];
-
-  // Главное исправление: даже если в конкретном городе мало реальных точек,
-  // мы добавляем универсальные точки дня, чтобы маршрут был полноценный с утра до вечера.
-  fallbackTemplates.forEach((template, index) => {
-    routePool.push({
-      ...template,
-      id: `day-fill-${city.id}-${index}`,
-      countryId: city.countryId,
-      cityId: city.id,
-      lat: 41 + index * 0.012,
-      lng: 69 + index * 0.012,
-      address: template.address,
-    });
-  });
-
-  const uniquePool = routePool.filter(
-    (place, index, array) =>
       array.findIndex(
         (item) =>
           item.title === place.title && item.category === place.category,
-      ) === index,
-  );
+      ) === index
+    );
+  });
+}
+
+function buildFullDayRoute(city: City, places: Place[], mode: TravelMode) {
+  const preferredByMode: Record<TravelMode, Category[]> = {
+    normal: ["breakfast", "sight", "museum", "food", "shop", "photo", "night"],
+    tired: ["breakfast", "sight", "food", "nature", "photo", "night"],
+    eat: ["breakfast", "food", "shop", "food", "photo", "night"],
+    cheap: ["breakfast", "sight", "nature", "food", "shop", "night"],
+    beautiful: ["breakfast", "sight", "museum", "photo", "nature", "night"],
+    nightSafe: ["food", "photo", "night"],
+  };
+
+  const categories = preferredByMode[mode];
+  const sorted = [...places].sort((a, b) => {
+    const aCat = categories.includes(a.category) ? 1 : 0;
+    const bCat = categories.includes(b.category) ? 1 : 0;
+    const aCheap = mode === "cheap" ? -(a.entryUZS + a.spendUZS) / 100000 : 0;
+    const bCheap = mode === "cheap" ? -(b.entryUZS + b.spendUZS) / 100000 : 0;
+    const aCalm = mode === "tired" && a.crowd === "low" ? 1.5 : 0;
+    const bCalm = mode === "tired" && b.crowd === "low" ? 1.5 : 0;
+    return (
+      bCat + b.rating + bCheap + bCalm - (aCat + a.rating + aCheap + aCalm)
+    );
+  });
+
+  const times =
+    mode === "nightSafe"
+      ? ["18:30", "19:30", "20:30", "21:30"]
+      : [
+          "09:00",
+          "10:15",
+          "11:45",
+          "13:15",
+          "14:45",
+          "16:15",
+          "17:45",
+          "19:15",
+          "21:15",
+        ];
 
   const result: RouteStep[] = [];
-  let total = 0;
+  const limit = mode === "tired" ? 6 : mode === "nightSafe" ? 4 : 9;
 
-  uniquePool.forEach((place) => {
+  sorted.forEach((place) => {
+    if (result.length >= limit) return;
     const prev = result[result.length - 1];
     const km = prev ? distanceKm(prev, place) : 0;
-    const taxi = prev ? taxiCost(km, city) : 0;
-    const pointCost = place.entryUZS + place.minSpendUZS + taxi;
+    const taxiUZS = prev ? taxiPrice(city, km) : 0;
 
-    // Для полного дня первые 8 точек добавляются обязательно,
-    // а бюджет используется как расчет/предупреждение, а не как жесткий стоп.
-    if (
-      result.length < 10 &&
-      (result.length < 8 || total + pointCost <= budgetUZS)
-    ) {
-      total += pointCost;
-      result.push({
-        ...place,
-        order: result.length + 1,
-        time: times[result.length] ?? "12:00",
-        distanceKm: km,
-        taxiUZS: taxi,
-        transportText: prev
-          ? `Такси ${km} км · ${Math.max(7, km * 4)} мин`
-          : "Старт из отеля / текущей точки",
-      });
-    }
+    result.push({
+      ...place,
+      order: result.length + 1,
+      time: times[result.length] ?? "12:00",
+      distanceKm: km,
+      taxiUZS,
+      transportText: prev
+        ? `Такси ${km} км · примерно ${Math.max(8, km * 4)} мин`
+        : "Старт из отеля / текущей точки",
+    });
   });
 
   return result;
 }
 
-function buildAlerts(
-  route: RouteStep[],
-  placesList: Place[],
-  country: Country,
-): SmartAlert[] {
-  const alerts: SmartAlert[] = [];
-  const deal = placesList.find((place) => place.deal);
-  const crowded = route.find((place) => place.crowd === "high");
-  const cheap = [...placesList].sort(
-    (a, b) => a.entryUZS + a.minSpendUZS - (b.entryUZS + b.minSpendUZS),
-  )[0];
-  const next = route[1] ?? route[0];
+function createNotices(route: RouteStep[], country: Country, city: City) {
+  const notices: SmartNotice[] = [];
+  const deal = route.find((item) => item.deal);
+  const crowded = route.find((item) => item.crowd === "high");
+  const photo = route.find(
+    (item) => item.category === "photo" || item.category === "sight",
+  );
+  const food = route.find(
+    (item) => item.category === "food" || item.category === "breakfast",
+  );
 
   if (deal) {
-    alerts.push({
+    notices.push({
       id: "deal",
-      type: "deal",
-      title: "Акция рядом",
+      icon: "pricetag",
+      kind: "deal",
+      title: "Акция по маршруту",
       text: `${deal.title}: ${deal.deal}`,
-      placeId: deal.id,
     });
   }
 
   if (crowded) {
-    alerts.push({
+    notices.push({
       id: "crowd",
-      type: "crowd",
-      title: "Много людей",
-      text: `${crowded.title} сейчас может быть загружен. Лучше идти утром или после 17:00.`,
-      placeId: crowded.id,
+      icon: "people",
+      kind: "crowd",
+      title: "Там много людей",
+      text: `${crowded.title}: лучше прийти раньше или перенести ближе к вечеру.`,
     });
   }
 
-  if (cheap) {
-    alerts.push({
-      id: "cheap",
-      type: "food",
-      title: "Где дешевле",
-      text: `${cheap.title} — примерно ${money(cheap.entryUZS + cheap.minSpendUZS, country)}.`,
-      placeId: cheap.id,
+  if (photo) {
+    notices.push({
+      id: "photo",
+      icon: "aperture",
+      kind: "photo",
+      title: "Фото-гид",
+      text: `${photo.title}: ${photo.photoTip}`,
     });
   }
 
-  if (next) {
-    alerts.push({
-      id: "route",
-      type: "route",
-      title: "Следующая точка",
-      text: `После текущей точки лучше ехать в ${next.title}. Такси примерно ${money(next.taxiUZS, country)}.`,
-      placeId: next.id,
+  if (food) {
+    notices.push({
+      id: "food",
+      icon: "restaurant",
+      kind: "food",
+      title: "Пора поесть",
+      text: `${food.title}: заложи примерно ${money(food.spendUZS, country)}.`,
     });
   }
 
-  alerts.push({
+  notices.push({
+    id: "cash",
+    icon: "cash",
+    kind: "money",
+    title: "Сколько взять наличных",
+    text: city.cashTip,
+  });
+
+  notices.push({
     id: "safety",
-    type: "safety",
+    icon: "shield",
+    kind: "safety",
     title: "Безопасность",
     text: `SOS: полиция ${country.emergency.police}, скорая ${country.emergency.ambulance}, туристическая помощь ${country.emergency.tourist}.`,
   });
 
-  return alerts;
+  return notices;
 }
 
 function openMap(place: Place) {
@@ -1256,326 +1075,154 @@ function openTaxi(from: Place | null, to: Place) {
     ? `https://yandex.com/maps/?rtext=${from.lat},${from.lng}~${to.lat},${to.lng}&rtt=auto`
     : `https://yandex.com/maps/?ll=${to.lng},${to.lat}&z=15`;
 
-  Linking.openURL(url).catch(() =>
-    Alert.alert("Такси", `Куда ехать: ${to.title}, ${to.address}`),
-  );
+  Linking.openURL(url).catch(() => Alert.alert("Такси", to.driverText));
 }
 
 function callNumber(number: string) {
   Linking.openURL(`tel:${number}`).catch(() => Alert.alert("Номер", number));
 }
 
-function speak(text: string) {
-  Speech.stop();
-  Speech.speak(text, {
-    language: "ru-RU",
-    pitch: 1,
-    rate: 0.92,
-  });
+function priceAdvice(inputPriceUZS: number, referenceUZS: number) {
+  if (!inputPriceUZS) return "Введите цену товара, чтобы проверить.";
+  const ratio = inputPriceUZS / Math.max(referenceUZS, 1);
+  if (ratio >= 2.2)
+    return "Очень дорого. Похоже на туристическую цену. Торгуйся или уходи.";
+  if (ratio >= 1.35) return "Дороговато. Можно просить скидку 20–30%.";
+  if (ratio >= 0.75) return "Цена выглядит нормально.";
+  return "Цена хорошая. Проверь качество и упаковку.";
 }
+
+const checklistItems: CheckItem[] = [
+  {
+    id: "passport",
+    title: "Паспорт / ID",
+    subtitle: "Фото в телефоне + оригинал в безопасном месте",
+    icon: "id-card",
+  },
+  {
+    id: "cash",
+    title: "Наличные",
+    subtitle: "Для рынка, воды, мелких покупок и такси",
+    icon: "cash",
+  },
+  {
+    id: "card",
+    title: "Карта",
+    subtitle: "Проверь лимиты и работу за границей",
+    icon: "card",
+  },
+  {
+    id: "power",
+    title: "Powerbank",
+    subtitle: "Для карты, фото, связи и переводчика",
+    icon: "battery-charging",
+  },
+  {
+    id: "water",
+    title: "Вода",
+    subtitle: "Особенно в жарких городах",
+    icon: "water",
+  },
+  {
+    id: "hotel",
+    title: "Адрес отеля",
+    subtitle: "Сохрани офлайн и покажи водителю",
+    icon: "home",
+  },
+  {
+    id: "internet",
+    title: "Интернет / SIM",
+    subtitle: "Маршрут и такси должны работать весь день",
+    icon: "wifi",
+  },
+  {
+    id: "medicine",
+    title: "Лекарства",
+    subtitle: "Мини-аптечка, если есть личные препараты",
+    icon: "medkit",
+  },
+];
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("home");
-  const [countryId, setCountryId] = useState("uz");
+  const [countryId, setCountryId] = useState<CountryId>("uz");
   const [cityId, setCityId] = useState("tashkent");
   const [customCity, setCustomCity] = useState("");
   const [budgetInput, setBudgetInput] = useState("500000");
-  const [mood, setMood] = useState<Mood>("active");
-  const [selectedCategories, setSelectedCategories] = useState<Category[]>([
-    "sight",
-    "museum",
-    "food",
-    "shop",
-  ]);
-  const [chatText, setChatText] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "hello",
-      role: "assistant",
-      text: "Привет. Я твой туристический помощник. Скажи бюджет, город или спроси: где дешевле, где меньше людей, вызови такси, покажи места.",
-    },
-  ]);
-  const [guideCallOpen, setGuideCallOpen] = useState(false);
-  const [guideCallPhase, setGuideCallPhase] =
-    useState<GuideCallPhase>("incoming");
-  const [guideCallText, setGuideCallText] = useState("");
-  const [femaleVoiceId, setFemaleVoiceId] = useState<string | undefined>(
-    undefined,
-  );
-  const guideCallTextRef = useRef("");
+  const [mode, setMode] = useState<TravelMode>("normal");
+  const [priceInput, setPriceInput] = useState("");
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
 
-  const country = countryById(countryId);
-  const city = cityById(cityId);
+  const country = getCountry(countryId);
+  const city = getCity(cityId);
   const cityName = customCity.trim() || city.name;
-  const cityOptions = cities.filter((item) => item.countryId === countryId);
-  const budgetUZS = budgetToUZS(budgetInput, country);
-  const cityPlaces = useMemo(
-    () => placesForCity(country, city, cityName),
-    [country.id, city.id, cityName],
+  const cityList = getCities(countryId);
+  const places = useMemo(
+    () => createFullDayPlaces(city, cityName),
+    [city.id, cityName],
   );
-
   const route = useMemo(
-    () =>
-      buildSmartRoute({
-        items: cityPlaces,
-        city,
-        budgetUZS,
-        selectedCategories,
-        mood,
-      }),
-    [cityPlaces, city, budgetUZS, selectedCategories, mood],
+    () => buildFullDayRoute(city, places, mode),
+    [city, places, mode],
   );
+  const budgetUZS = parseBudget(budgetInput, country);
 
-  const alerts = useMemo(
-    () => buildAlerts(route, cityPlaces, country),
-    [route, cityPlaces, country],
+  const totals = useMemo(() => {
+    const entry = route.reduce((sum, item) => sum + item.entryUZS, 0);
+    const spend = route.reduce((sum, item) => sum + item.spendUZS, 0);
+    const taxi = route.reduce((sum, item) => sum + item.taxiUZS, 0);
+    return { entry, spend, taxi, total: entry + spend + taxi };
+  }, [route]);
+
+  const remaining = budgetUZS - totals.total;
+  const notices = useMemo(
+    () => createNotices(route, country, city),
+    [route, country, city],
   );
-  const total = route.reduce(
-    (sum, item) => sum + item.entryUZS + item.minSpendUZS + item.taxiUZS,
-    0,
-  );
-  const entryTotal = route.reduce((sum, item) => sum + item.entryUZS, 0);
-  const spendTotal = route.reduce((sum, item) => sum + item.minSpendUZS, 0);
-  const taxiTotal = route.reduce((sum, item) => sum + item.taxiUZS, 0);
-  const remaining = budgetUZS - total;
   const nextPoint = route[1] ?? route[0];
-  const dealPlaces = cityPlaces.filter((place) => place.deal);
-  const calmPlaces = cityPlaces.filter((place) => place.crowd !== "high");
-  const cheapPlaces = [...cityPlaces].sort(
-    (a, b) => a.entryUZS + a.minSpendUZS - (b.entryUZS + b.minSpendUZS),
+  const cheapPlaces = [...places]
+    .sort((a, b) => a.entryUZS + a.spendUZS - (b.entryUZS + b.spendUZS))
+    .slice(0, 4);
+  const photoPlaces = route.filter((item) =>
+    ["sight", "photo", "nature", "night"].includes(item.category),
   );
+  const referencePrice = cheapPlaces[0]?.spendUZS || 100000;
+  const priceUZS = parseBudget(priceInput, country);
+  const checklistDone = Object.values(checked).filter(Boolean).length;
 
-  useEffect(() => {
-    Speech.getAvailableVoicesAsync()
-      .then((voices) => {
-        const russianFemale =
-          voices.find(
-            (voice) =>
-              voice.language?.toLowerCase().startsWith("ru") &&
-              /female|woman|anna|milena|oksana|alena|yelena|katya|google/i.test(
-                `${voice.name} ${voice.identifier}`,
-              ),
-          ) ??
-          voices.find((voice) =>
-            voice.language?.toLowerCase().startsWith("ru"),
-          ) ??
-          voices.find((voice) =>
-            /female|woman|anna|milena|oksana|alena|yelena|katya|google/i.test(
-              `${voice.name} ${voice.identifier}`,
-            ),
-          );
-
-        setFemaleVoiceId(russianFemale?.identifier);
-      })
-      .catch(() => {
-        setFemaleVoiceId(undefined);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (guideCallOpen && guideCallPhase === "incoming") {
-      Vibration.vibrate([0, 650, 260, 650, 260, 650], true);
-      return () => Vibration.cancel();
-    }
-
-    Vibration.cancel();
-    return undefined;
-  }, [guideCallOpen, guideCallPhase]);
-
-  const prepareSpeakerAudio = async () => {
-    try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        staysActiveInBackground: false,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: false,
-        playThroughEarpieceAndroid: false,
-      });
-    } catch {
-      // Даже если AudioMode не поддержался, TTS ниже всё равно попробует говорить.
-    }
-  };
-
-  const speakFemale = async (textToSpeak: string) => {
-    const phrase = textToSpeak.trim();
-    if (!phrase) return;
-
-    await prepareSpeakerAudio();
-    Speech.stop();
-
-    const cleanPhrase = phrase.length > 3800 ? phrase.slice(0, 3800) : phrase;
-
-    // Самый надежный режим: НЕ указываем voice-id.
-    // На многих Android voice-id ломает звук и TTS молчит.
-    const reliableOptions = {
-      language: "ru-RU",
-      pitch: 1.28,
-      rate: 0.78,
-      volume: 1.0,
-    };
-
-    Speech.speak(cleanPhrase, reliableOptions);
-
-    // Жесткий повторный запуск, если Android не начал говорить.
-    setTimeout(async () => {
-      try {
-        const speaking = await Speech.isSpeakingAsync();
-        if (!speaking) {
-          Speech.stop();
-          await prepareSpeakerAudio();
-          Speech.speak(cleanPhrase, {
-            language: "ru-RU",
-            pitch: 1.12,
-            rate: 0.82,
-            volume: 1.0,
-          });
-        }
-      } catch {
-        Speech.stop();
-        Speech.speak(cleanPhrase, {
-          language: "ru-RU",
-          pitch: 1.12,
-          rate: 0.82,
-          volume: 1.0,
-        });
-      }
-    }, 900);
-  };
-
-  const setCountry = (id: string) => {
+  const changeCountry = (id: CountryId) => {
     setCountryId(id);
-    const firstCity = cities.find((item) => item.countryId === id);
-    if (firstCity) {
-      setCityId(firstCity.id);
+    const first = cities.find((item) => item.countryId === id);
+    if (first) {
+      setCityId(first.id);
       setCustomCity("");
     }
   };
 
-  const toggleCategory = (category: Category) => {
-    setSelectedCategories((current) =>
-      current.includes(category)
-        ? current.filter((item) => item !== category)
-        : [...current, category],
-    );
-  };
-
-  const assistantReply = (text: string) => {
-    const lower = text.toLowerCase();
-    let answer = `Я подобрал маршрут по ${cityName}: ${route.map((item) => item.title).join(" → ")}. Итого ${money(total, country)}, остаток ${money(remaining, country)}.`;
-
-    if (
-      lower.includes("дешев") ||
-      lower.includes("акци") ||
-      lower.includes("скидк")
-    ) {
-      const cheap = cheapPlaces[0];
-      const deal = dealPlaces[0];
-      answer = deal
-        ? `Есть рекомендация: ${deal.title}. ${deal.deal}. Еще дешевый вариант: ${cheap.title}, примерно ${money(cheap.entryUZS + cheap.minSpendUZS, country)}.`
-        : `Самый дешевый вариант: ${cheap.title}, примерно ${money(cheap.entryUZS + cheap.minSpendUZS, country)}. ${cheap.cheapTip}`;
-      setTab("offers");
-    }
-
-    if (
-      lower.includes("людей") ||
-      lower.includes("толп") ||
-      lower.includes("спокой")
-    ) {
-      answer = calmPlaces.length
-        ? `Где меньше людей: ${calmPlaces.map((item) => item.title).join(", ")}.`
-        : "Сейчас популярные точки загружены. Лучше идти утром или ближе к вечеру.";
-      setTab("discover");
-    }
-
-    if (lower.includes("такси") || lower.includes("яндекс")) {
-      if (nextPoint) {
-        answer = `Открываю маршрут до ${nextPoint.title}. Примерное такси: ${money(nextPoint.taxiUZS, country)}.`;
-        openTaxi(null, nextPoint);
-        setTab("taxi");
-      } else {
-        answer =
-          "Сначала построй маршрут, потом я смогу открыть такси до следующей точки.";
-      }
-    }
-
-    if (
-      lower.includes("мест") ||
-      lower.includes("покажи") ||
-      lower.includes("куда")
-    ) {
-      answer = `Показываю места для ${cityName}: ${cityPlaces.map((item) => item.title).join(", ")}.`;
-      setTab("discover");
-    }
-
-    if (
-      lower.includes("полици") ||
-      lower.includes("скор") ||
-      lower.includes("sos") ||
-      lower.includes("помощ")
-    ) {
-      answer = `Экстренные номера: полиция ${country.emergency.police}, скорая ${country.emergency.ambulance}, пожарная ${country.emergency.fire}, туристическая помощь ${country.emergency.tourist}.`;
-      setTab("sos");
-    }
-
-    return answer;
-  };
-
-  const sendChat = () => {
-    const text = chatText.trim();
-    if (!text) return;
-
-    const answer = assistantReply(text);
-    setMessages((current) => [
-      ...current,
-      { id: `u-${Date.now()}`, role: "user", text },
-      { id: `a-${Date.now()}`, role: "assistant", text: answer },
-    ]);
-    setChatText("");
-    speakFemale(answer);
-  };
-
-  const quickVoice = (command: string) => {
-    const answer = assistantReply(command);
-    setMessages((current) => [
-      ...current,
-      { id: `u-${Date.now()}`, role: "user", text: command },
-      { id: `a-${Date.now()}`, role: "assistant", text: answer },
-    ]);
-    speakFemale(answer);
-  };
-
-  const startGuideCall = () => {
-    const plan = route.length
-      ? route
-          .map((item, index) => `${index + 1}. ${item.time} — ${item.title}`)
-          .join(". ")
-      : "сначала выберу лучшие точки города, потом рассчитаю такси и бюджет.";
-
-    const intro = `Привет, красавчик. Я твоя персональная туристическая ассистентка. Сейчас соберу тебе красивый маршрут на весь день. Слушай план: ${plan}. По деньгам выходит примерно ${money(total, country)}. Остаток: ${money(remaining, country)}. Я буду вести тебя от точки к точке, подсказывать где дешевле, где много людей и когда лучше вызвать такси.`;
-
-    guideCallTextRef.current = intro;
-    setGuideCallText(intro);
-    setGuideCallPhase("incoming");
-    setGuideCallOpen(true);
-  };
-
-  const acceptGuideCall = () => {
-    const phrase = guideCallTextRef.current || guideCallText;
-    setGuideCallPhase("active");
-    setTab("route");
-    Vibration.cancel();
-
-    // Сначала короткая фраза, чтобы сразу было понятно, что звук пошел.
-    setTimeout(() => {
-      speakFemale(`Алло, красавчик. Я на связи. ${phrase}`);
-    }, 650);
-  };
-
-  const closeGuideCall = () => {
-    Speech.stop();
-    Vibration.cancel();
-    setGuideCallOpen(false);
-    setGuideCallPhase("incoming");
+  const applyQuickMode = (nextMode: TravelMode) => {
+    setMode(nextMode);
+    if (nextMode === "tired")
+      Alert.alert(
+        "Маршрут упрощен",
+        "Я убрал часть тяжелых точек и оставил больше спокойных мест.",
+      );
+    if (nextMode === "eat")
+      Alert.alert("Хочу поесть", "Я сделал маршрут с акцентом на еду и паузы.");
+    if (nextMode === "cheap")
+      Alert.alert(
+        "Сделал дешевле",
+        "Я снизил платные точки и добавил больше бесплатных прогулок.",
+      );
+    if (nextMode === "beautiful")
+      Alert.alert(
+        "Сделал красиво",
+        "Я добавил больше фото-точек и красивых мест.",
+      );
+    if (nextMode === "nightSafe")
+      Alert.alert(
+        "Безопасный вечер",
+        "Я оставил короткий вечерний маршрут и рекомендую такси.",
+      );
   };
 
   return (
@@ -1585,17 +1232,17 @@ export default function App() {
         <Header
           cityName={cityName}
           country={country}
-          total={total}
-          budgetUZS={budgetUZS}
+          total={totals.total}
+          budget={budgetUZS}
         />
 
         {tab === "home" && (
           <HomeScreen
             country={country}
             countryId={countryId}
-            setCountry={setCountry}
+            changeCountry={changeCountry}
+            cityList={cityList}
             cityId={cityId}
-            cityOptions={cityOptions}
             setCityId={(id) => {
               setCityId(id);
               setCustomCity("");
@@ -1603,24 +1250,29 @@ export default function App() {
             customCity={customCity}
             setCustomCity={(value) => {
               setCustomCity(value);
-              if (value.trim()) {
-                setCityId(`custom-${country.id}`);
-              }
+              if (value.trim()) setCityId(`custom-${countryId}`);
             }}
             budgetInput={budgetInput}
             setBudgetInput={setBudgetInput}
-            mood={mood}
-            setMood={setMood}
-            selectedCategories={selectedCategories}
-            toggleCategory={toggleCategory}
-            alerts={alerts}
             route={route}
-            total={total}
+            totals={totals}
             budgetUZS={budgetUZS}
             remaining={remaining}
-            onBuild={() => setTab("route")}
-            onVoice={() => setTab("voice")}
-            onGuideCall={startGuideCall}
+            notices={notices}
+            setTab={setTab}
+          />
+        )}
+
+        {tab === "live" && (
+          <LiveDayScreen
+            country={country}
+            route={route}
+            notices={notices}
+            mode={mode}
+            applyQuickMode={applyQuickMode}
+            totals={totals}
+            budgetUZS={budgetUZS}
+            remaining={remaining}
           />
         )}
 
@@ -1628,71 +1280,39 @@ export default function App() {
           <RouteScreen
             country={country}
             route={route}
-            total={total}
+            totals={totals}
             budgetUZS={budgetUZS}
-            remaining={remaining}
           />
         )}
-        {tab === "discover" && (
-          <DiscoverScreen
+        {tab === "places" && (
+          <PlacesScreen
             country={country}
-            places={cityPlaces}
-            selectedCategories={selectedCategories}
-            toggleCategory={toggleCategory}
+            places={places}
             cheapPlaces={cheapPlaces}
-            calmPlaces={calmPlaces}
+            photoPlaces={photoPlaces}
           />
         )}
-        {tab === "taxi" && (
-          <TaxiScreen country={country} route={route} nextPoint={nextPoint} />
-        )}
-        {tab === "budget" && (
-          <BudgetScreen
+        {tab === "tools" && (
+          <ToolsScreen
             country={country}
-            budgetUZS={budgetUZS}
-            total={total}
-            remaining={remaining}
-            entryTotal={entryTotal}
-            spendTotal={spendTotal}
-            taxiTotal={taxiTotal}
+            city={city}
+            priceInput={priceInput}
+            setPriceInput={setPriceInput}
+            priceAdviceText={priceAdvice(priceUZS, referencePrice)}
+            photoPlaces={photoPlaces}
             route={route}
           />
         )}
-        {tab === "offers" && (
-          <OffersScreen
+        {tab === "checklist" && (
+          <ChecklistScreen
+            checked={checked}
+            setChecked={setChecked}
+            checklistDone={checklistDone}
             country={country}
-            alerts={alerts}
-            dealPlaces={dealPlaces}
-            cheapPlaces={cheapPlaces}
+            city={city}
           />
         )}
-        {tab === "voice" && (
-          <VoiceScreen
-            messages={messages}
-            chatText={chatText}
-            setChatText={setChatText}
-            sendChat={sendChat}
-            quickVoice={quickVoice}
-          />
-        )}
-        {tab === "sos" && <SosScreen country={country} />}
-
-        <GuideCallModal
-          visible={guideCallOpen}
-          phase={guideCallPhase}
-          text={guideCallText}
-          nextPoint={nextPoint}
-          onAccept={acceptGuideCall}
-          onClose={closeGuideCall}
-          onReplay={() =>
-            speakFemale(
-              `Повторяю маршрут. ${guideCallTextRef.current || guideCallText}`,
-            )
-          }
-          onTaxi={() => {
-            if (nextPoint) openTaxi(null, nextPoint);
-          }}
-        />
+        {tab === "sos" && <SosScreen country={country} nextPoint={nextPoint} />}
 
         <BottomTabs active={tab} setActive={setTab} />
       </View>
@@ -1704,31 +1324,28 @@ function Header({
   cityName,
   country,
   total,
-  budgetUZS,
+  budget,
 }: {
   cityName: string;
   country: Country;
   total: number;
-  budgetUZS: number;
+  budget: number;
 }) {
-  const ok = total <= budgetUZS;
+  const ok = total <= budget;
   return (
     <View style={styles.header}>
       <View>
         <Text style={styles.logo}>TripMate</Text>
-        <Text style={styles.headerSub}>tourist AI guide</Text>
+        <Text style={styles.headerSub}>live travel assistant</Text>
       </View>
-
       <View style={styles.headerRight}>
-        <View style={styles.headerPill}>
-          <Text style={styles.headerPillText}>
+        <View style={styles.pill}>
+          <Text style={styles.pillText}>
             {country.emoji} {cityName}
           </Text>
         </View>
-        <View
-          style={[styles.headerPill, ok ? styles.goodPill : styles.badPill]}
-        >
-          <Text style={styles.headerPillText}>{ok ? "OK" : "OVER"}</Text>
+        <View style={[styles.pill, ok ? styles.goodPill : styles.badPill]}>
+          <Text style={styles.pillText}>{ok ? "OK" : "OVER"}</Text>
         </View>
       </View>
     </View>
@@ -1737,27 +1354,21 @@ function Header({
 
 function HomeScreen(props: {
   country: Country;
-  countryId: string;
-  setCountry: (id: string) => void;
+  countryId: CountryId;
+  changeCountry: (id: CountryId) => void;
+  cityList: City[];
   cityId: string;
-  cityOptions: City[];
   setCityId: (id: string) => void;
   customCity: string;
   setCustomCity: (value: string) => void;
   budgetInput: string;
   setBudgetInput: (value: string) => void;
-  mood: Mood;
-  setMood: (value: Mood) => void;
-  selectedCategories: Category[];
-  toggleCategory: (category: Category) => void;
-  alerts: SmartAlert[];
   route: RouteStep[];
-  total: number;
+  totals: { entry: number; spend: number; taxi: number; total: number };
   budgetUZS: number;
   remaining: number;
-  onBuild: () => void;
-  onVoice: () => void;
-  onGuideCall: () => void;
+  notices: SmartNotice[];
+  setTab: (tab: Tab) => void;
 }) {
   return (
     <ScrollView
@@ -1766,53 +1377,34 @@ function HomeScreen(props: {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.hero}>
-        <View style={styles.sun} />
+        <View style={styles.heroSun} />
         <View style={styles.heroBadge}>
-          <Ionicons name="navigate" size={15} color={colors.dark} />
-          <Text style={styles.heroBadgeText}>LIVE TOURIST GUIDE</Text>
+          <Ionicons name="sparkles" size={15} color={colors.dark} />
+          <Text style={styles.heroBadgeText}>LIVE DAY</Text>
         </View>
-        <Text style={styles.heroTitle}>
-          Твой личный гид, который сам ведет по городу
-        </Text>
+        <Text style={styles.heroTitle}>Приложение ведет туриста весь день</Text>
         <Text style={styles.heroText}>
-          Маршрут на весь день, такси, скидки, акции, предупреждения, бюджет,
-          SOS и голосовой помощник в одном приложении.
+          Маршрут, такси, бюджет, фото-гид, проверка цен, что купить, чек-лист и
+          кнопки “я устал / хочу поесть / сделай дешевле”.
         </Text>
 
-        <View style={styles.heroButtons}>
-          <Pressable style={styles.primaryButton} onPress={props.onBuild}>
-            <Text style={styles.primaryButtonText}>Построить маршрут</Text>
-            <Ionicons name="arrow-forward" size={19} color={colors.dark} />
-          </Pressable>
-          <Pressable style={styles.voiceButton} onPress={props.onVoice}>
-            <Ionicons name="mic" size={20} color={colors.text} />
-          </Pressable>
-        </View>
-
-        <Pressable style={styles.guideCallButton} onPress={props.onGuideCall}>
-          <View style={styles.guideAvatarSmall}>
-            <Ionicons name="call" size={18} color={colors.dark} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.guideCallTitle}>
-              Помоги составить маршрут сама
-            </Text>
-            <Text style={styles.guideCallSub}>
-              Персональная ассистентка озвучит план на весь день
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.soft} />
+        <Pressable
+          style={styles.heroButton}
+          onPress={() => props.setTab("live")}
+        >
+          <Text style={styles.heroButtonText}>Запустить живой день</Text>
+          <Ionicons name="arrow-forward" size={20} color={colors.dark} />
         </Pressable>
       </View>
 
-      <Section title="Умные рекомендации сейчас">
+      <Section title="Умные уведомления">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.row}
         >
-          {props.alerts.map((alert) => (
-            <AlertCard key={alert.id} alert={alert} />
+          {props.notices.map((notice) => (
+            <NoticeCard key={notice.id} notice={notice} />
           ))}
         </ScrollView>
       </Section>
@@ -1826,7 +1418,7 @@ function HomeScreen(props: {
           {countries.map((country) => (
             <Pressable
               key={country.id}
-              onPress={() => props.setCountry(country.id)}
+              onPress={() => props.changeCountry(country.id)}
               style={[
                 styles.countryCard,
                 props.countryId === country.id && styles.activeCard,
@@ -1846,7 +1438,7 @@ function HomeScreen(props: {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.row}
         >
-          {props.cityOptions.map((city) => (
+          {props.cityList.map((city) => (
             <Pressable
               key={city.id}
               onPress={() => props.setCityId(city.id)}
@@ -1863,14 +1455,14 @@ function HomeScreen(props: {
           ))}
         </ScrollView>
 
-        <View style={styles.searchBox}>
+        <View style={styles.inputBox}>
           <Ionicons name="search" size={18} color={colors.muted} />
           <TextInput
             value={props.customCity}
             onChangeText={props.setCustomCity}
             placeholder="Или введи любой город мира"
             placeholderTextColor={colors.muted}
-            style={styles.searchInput}
+            style={styles.input}
           />
         </View>
       </Section>
@@ -1887,6 +1479,7 @@ function HomeScreen(props: {
           />
           <Text style={styles.currency}>{props.country.currency}</Text>
         </View>
+
         <View style={styles.quickRow}>
           {[250000, 500000, 1000000, 2000000].map((value) => (
             <Pressable
@@ -1906,91 +1499,24 @@ function HomeScreen(props: {
         </View>
       </Section>
 
-      <Section title="Настроение поездки">
-        <View style={styles.moodGrid}>
-          {(
-            [
-              ["active", "Активно", "walk"],
-              ["calm", "Спокойно", "leaf"],
-              ["family", "Семья", "people"],
-              ["romantic", "Романтика", "heart"],
-              ["shopping", "Шопинг", "bag"],
-            ] as [Mood, string, keyof typeof Ionicons.glyphMap][]
-          ).map(([id, label, icon]) => (
-            <Pressable
-              key={id}
-              onPress={() => props.setMood(id)}
-              style={[styles.moodCard, props.mood === id && styles.moodActive]}
-            >
-              <Ionicons
-                name={icon}
-                size={20}
-                color={props.mood === id ? colors.dark : colors.accent}
-              />
-              <Text
-                style={[
-                  styles.moodText,
-                  props.mood === id && styles.moodTextActive,
-                ]}
-              >
-                {label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </Section>
-
-      <Section title="Что включить">
-        <View style={styles.chipsWrap}>
-          {(
-            [
-              "sight",
-              "museum",
-              "food",
-              "shop",
-              "nature",
-              "family",
-              "night",
-            ] as Category[]
-          ).map((category) => {
-            const active = props.selectedCategories.includes(category);
-            return (
-              <Pressable
-                key={category}
-                onPress={() => props.toggleCategory(category)}
-                style={[styles.chip, active && styles.chipActive]}
-              >
-                <Ionicons
-                  name={categoryIcons[category]}
-                  size={15}
-                  color={active ? colors.dark : colors.text}
-                />
-                <Text
-                  style={[styles.chipText, active && styles.chipTextActive]}
-                >
-                  {categoryLabels[category]}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </Section>
-
       <View style={styles.summaryCard}>
-        <Text style={styles.kicker}>ПЛАН ПОЕЗДКИ</Text>
+        <Text style={styles.kicker}>ПЛАН НА ВЕСЬ ДЕНЬ</Text>
         <Text style={styles.summaryTitle}>
-          Маршрут на весь день: {props.route.length} точек
+          {props.route.length} точек ·{" "}
+          {money(props.totals.total, props.country)}
         </Text>
         <Text style={styles.cardMuted}>
-          {props.route.map((item) => item.title).join(" → ") ||
-            "Выбери город и бюджет"}
+          {props.route.map((item) => item.title).join(" → ")}
         </Text>
         <View style={styles.statGrid}>
           <MiniStat
             label="Бюджет"
             value={money(props.budgetUZS, props.country)}
           />
-          <MiniStat label="Итого" value={money(props.total, props.country)} />
+          <MiniStat
+            label="Итого"
+            value={money(props.totals.total, props.country)}
+          />
           <MiniStat
             label="Остаток"
             value={money(props.remaining, props.country)}
@@ -2001,18 +1527,133 @@ function HomeScreen(props: {
   );
 }
 
+function LiveDayScreen(props: {
+  country: Country;
+  route: RouteStep[];
+  notices: SmartNotice[];
+  mode: TravelMode;
+  applyQuickMode: (mode: TravelMode) => void;
+  totals: { entry: number; spend: number; taxi: number; total: number };
+  budgetUZS: number;
+  remaining: number;
+}) {
+  const current = props.route[0];
+  const next = props.route[1];
+
+  return (
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={styles.contentPad}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.liveHero}>
+        <Text style={styles.kicker}>ЖИВОЙ ДЕНЬ</Text>
+        <Text style={styles.liveTitle}>Сейчас: {current?.title}</Text>
+        <Text style={styles.cardMuted}>{current?.subtitle}</Text>
+
+        <View style={styles.actionRow}>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => current && openMap(current)}
+          >
+            <Ionicons name="map" size={17} color={colors.dark} />
+            <Text style={styles.secondaryButtonText}>Карта</Text>
+          </Pressable>
+          <Pressable
+            style={styles.darkButton}
+            onPress={() => next && openTaxi(current, next)}
+          >
+            <Ionicons name="car" size={17} color={colors.text} />
+            <Text style={styles.darkButtonText}>Такси дальше</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <Section title="Быстрые команды">
+        <View style={styles.commandGrid}>
+          <CommandButton
+            icon="battery-dead"
+            title="Я устал"
+            subtitle="Упростить"
+            onPress={() => props.applyQuickMode("tired")}
+          />
+          <CommandButton
+            icon="restaurant"
+            title="Хочу поесть"
+            subtitle="Еда ближе"
+            onPress={() => props.applyQuickMode("eat")}
+          />
+          <CommandButton
+            icon="cash"
+            title="Сделай дешевле"
+            subtitle="Экономия"
+            onPress={() => props.applyQuickMode("cheap")}
+          />
+          <CommandButton
+            icon="aperture"
+            title="Сделай красиво"
+            subtitle="Фото-точки"
+            onPress={() => props.applyQuickMode("beautiful")}
+          />
+          <CommandButton
+            icon="moon"
+            title="Ночной safe"
+            subtitle="Только такси"
+            onPress={() => props.applyQuickMode("nightSafe")}
+          />
+          <CommandButton
+            icon="refresh"
+            title="Обычный день"
+            subtitle="Вернуть"
+            onPress={() => props.applyQuickMode("normal")}
+          />
+        </View>
+      </Section>
+
+      <Section title="Рекомендации">
+        {props.notices.map((notice) => (
+          <NoticeWide key={notice.id} notice={notice} />
+        ))}
+      </Section>
+
+      <View style={styles.summaryCard}>
+        <Text style={styles.kicker}>БЮДЖЕТ</Text>
+        <Text style={styles.summaryTitle}>
+          {money(props.totals.total, props.country)} из{" "}
+          {money(props.budgetUZS, props.country)}
+        </Text>
+        <Text style={styles.cardMuted}>
+          Остаток: {money(props.remaining, props.country)}
+        </Text>
+      </View>
+
+      <Section title="Расписание дня">
+        {props.route.map((step, index) => {
+          const previous = index > 0 ? props.route[index - 1] : null;
+          return (
+            <RouteStepCard
+              key={step.id}
+              step={step}
+              previous={previous}
+              country={props.country}
+            />
+          );
+        })}
+      </Section>
+    </ScrollView>
+  );
+}
+
 function RouteScreen({
   country,
   route,
-  total,
+  totals,
   budgetUZS,
-  remaining,
 }: {
   country: Country;
   route: RouteStep[];
-  total: number;
+  totals: { entry: number; spend: number; taxi: number; total: number };
   budgetUZS: number;
-  remaining: number;
 }) {
   return (
     <ScrollView
@@ -2021,143 +1662,70 @@ function RouteScreen({
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.summaryCard}>
-        <Text style={styles.kicker}>ГОТОВЫЙ МАРШРУТ</Text>
+        <Text style={styles.kicker}>ПОЛНЫЙ МАРШРУТ</Text>
         <Text style={styles.summaryTitle}>
-          {total <= budgetUZS ? "Уложились в бюджет" : "Бюджет превышен"}
+          {route.length} точек с 09:00 до 22:00
         </Text>
         <View style={styles.statGrid}>
-          <MiniStat label="Бюджет" value={money(budgetUZS, country)} />
-          <MiniStat label="Итого" value={money(total, country)} />
-          <MiniStat label="Остаток" value={money(remaining, country)} />
+          <MiniStat label="Билеты" value={money(totals.entry, country)} />
+          <MiniStat label="Еда/покупки" value={money(totals.spend, country)} />
+          <MiniStat label="Такси" value={money(totals.taxi, country)} />
         </View>
+        <Text style={styles.cardMuted}>
+          Итого: {money(totals.total, country)} / бюджет:{" "}
+          {money(budgetUZS, country)}
+        </Text>
       </View>
 
       {route.map((step, index) => {
         const previous = index > 0 ? route[index - 1] : null;
         return (
-          <View key={step.id} style={styles.routeCard}>
-            <View style={styles.stepCircle}>
-              <Text style={styles.stepText}>{index + 1}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.cardTop}>
-                <Text style={styles.timeText}>{step.time}</Text>
-                <Text
-                  style={[styles.crowdText, { color: crowdColors[step.crowd] }]}
-                >
-                  {crowdLabels[step.crowd]}
-                </Text>
-              </View>
-              <Text style={styles.placeTitle}>{step.title}</Text>
-              <Text style={styles.cardMuted}>{step.subtitle}</Text>
-              {step.deal ? (
-                <Text style={styles.dealLine}>🔥 {step.deal}</Text>
-              ) : null}
-              <Text style={styles.info}>📍 {step.address}</Text>
-              <Text style={styles.info}>
-                🎫 Вход: {money(step.entryUZS, country)} • траты:{" "}
-                {money(step.minSpendUZS, country)}
-              </Text>
-              <Text style={styles.info}>
-                🚕 {step.transportText} • {money(step.taxiUZS, country)}
-              </Text>
-              <Text style={styles.tip}>Совет: {step.cheapTip}</Text>
-
-              <View style={styles.actionRow}>
-                <Pressable
-                  style={styles.secondaryButton}
-                  onPress={() => openTaxi(previous, step)}
-                >
-                  <Ionicons name="car" size={17} color={colors.dark} />
-                  <Text style={styles.secondaryButtonText}>Вызвать такси</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.darkButton}
-                  onPress={() => openMap(step)}
-                >
-                  <Ionicons name="map" size={17} color={colors.text} />
-                  <Text style={styles.darkButtonText}>Карта</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
+          <RouteStepCard
+            key={step.id}
+            step={step}
+            previous={previous}
+            country={country}
+          />
         );
       })}
     </ScrollView>
   );
 }
 
-function DiscoverScreen({
+function PlacesScreen({
   country,
   places,
-  selectedCategories,
-  toggleCategory,
   cheapPlaces,
-  calmPlaces,
+  photoPlaces,
 }: {
   country: Country;
   places: Place[];
-  selectedCategories: Category[];
-  toggleCategory: (c: Category) => void;
   cheapPlaces: Place[];
-  calmPlaces: Place[];
+  photoPlaces: RouteStep[];
 }) {
-  const visible = places.filter((place) =>
-    selectedCategories.includes(place.category),
-  );
-  const list = visible.length ? visible : places;
-
   return (
     <ScrollView
       style={styles.content}
       contentContainerStyle={styles.contentPad}
       showsVerticalScrollIndicator={false}
     >
-      <Section title="Категории">
-        <View style={styles.chipsWrap}>
-          {(
-            [
-              "sight",
-              "museum",
-              "food",
-              "shop",
-              "nature",
-              "family",
-              "night",
-            ] as Category[]
-          ).map((category) => {
-            const active = selectedCategories.includes(category);
-            return (
-              <Pressable
-                key={category}
-                onPress={() => toggleCategory(category)}
-                style={[styles.chip, active && styles.chipActive]}
-              >
-                <Text
-                  style={[styles.chipText, active && styles.chipTextActive]}
-                >
-                  {categoryLabels[category]}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </Section>
-
       <Section title="Где дешевле">
-        {cheapPlaces.slice(0, 3).map((place) => (
+        {cheapPlaces.map((place) => (
           <CompactPlace key={place.id} place={place} country={country} />
         ))}
       </Section>
 
-      <Section title="Где меньше людей">
-        {calmPlaces.slice(0, 3).map((place) => (
-          <CompactPlace key={place.id} place={place} country={country} />
+      <Section title="Фото-гид">
+        {photoPlaces.slice(0, 5).map((place) => (
+          <View key={place.id} style={styles.photoCard}>
+            <Text style={styles.cardTitle}>{place.title}</Text>
+            <Text style={styles.cardMuted}>{place.photoTip}</Text>
+          </View>
         ))}
       </Section>
 
       <Section title="Все места">
-        {list.map((place) => (
+        {places.map((place) => (
           <PlaceCard key={place.id} place={place} country={country} />
         ))}
       </Section>
@@ -2165,16 +1733,101 @@ function DiscoverScreen({
   );
 }
 
-function OffersScreen({
-  country,
-  alerts,
-  dealPlaces,
-  cheapPlaces,
-}: {
+function ToolsScreen(props: {
   country: Country;
-  alerts: SmartAlert[];
-  dealPlaces: Place[];
-  cheapPlaces: Place[];
+  city: City;
+  priceInput: string;
+  setPriceInput: (value: string) => void;
+  priceAdviceText: string;
+  photoPlaces: RouteStep[];
+  route: RouteStep[];
+}) {
+  const driverPoint = props.route[0];
+
+  return (
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={styles.contentPad}
+      showsVerticalScrollIndicator={false}
+    >
+      <Section title="Проверка туристической цены">
+        <View style={styles.toolCard}>
+          <Text style={styles.cardTitle}>Проверь, не завышена ли цена</Text>
+          <Text style={styles.cardMuted}>
+            Введи цену товара, которую тебе назвали.
+          </Text>
+          <View style={styles.inputBox}>
+            <Ionicons name="cash" size={18} color={colors.muted} />
+            <TextInput
+              value={props.priceInput}
+              onChangeText={props.setPriceInput}
+              keyboardType="number-pad"
+              placeholder={`Цена в ${props.country.currency}`}
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+            />
+          </View>
+          <Text style={styles.adviceText}>{props.priceAdviceText}</Text>
+        </View>
+      </Section>
+
+      <Section title="Что купить в городе">
+        {props.city.buyList.map((item) => (
+          <View key={item.title} style={styles.buyCard}>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardMuted}>
+              Нормальная цена: {item.normalPriceUZS}
+            </Text>
+            <Text style={styles.cardMuted}>Где: {item.where}</Text>
+            <Text style={styles.tip}>Совет: {item.tip}</Text>
+          </View>
+        ))}
+      </Section>
+
+      <Section title="Фразы для торга">
+        {[
+          "Очень красиво, но дорого. Сделайте дешевле, пожалуйста.",
+          "Если я возьму два товара, какая будет последняя цена?",
+          "Я посмотрю еще и вернусь, если цена будет лучше.",
+        ].map((phrase) => (
+          <View key={phrase} style={styles.phraseCard}>
+            <Text style={styles.phraseText}>{phrase}</Text>
+          </View>
+        ))}
+      </Section>
+
+      <Section title="Показать водителю">
+        <View style={styles.driverCard}>
+          <Text style={styles.driverTitle}>
+            {driverPoint?.driverText ??
+              "Пожалуйста, отвезите меня по этому адресу."}
+          </Text>
+          <Text style={styles.cardMuted}>{driverPoint?.address}</Text>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => driverPoint && openTaxi(null, driverPoint)}
+          >
+            <Ionicons name="car" size={17} color={colors.dark} />
+            <Text style={styles.secondaryButtonText}>Открыть такси</Text>
+          </Pressable>
+        </View>
+      </Section>
+    </ScrollView>
+  );
+}
+
+function ChecklistScreen({
+  checked,
+  setChecked,
+  checklistDone,
+  country,
+  city,
+}: {
+  checked: Record<string, boolean>;
+  setChecked: (value: Record<string, boolean>) => void;
+  checklistDone: number;
+  country: Country;
+  city: City;
 }) {
   return (
     <ScrollView
@@ -2182,39 +1835,57 @@ function OffersScreen({
       contentContainerStyle={styles.contentPad}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.offerHero}>
-        <Ionicons name="notifications" size={34} color={colors.dark} />
-        <Text style={styles.offerTitle}>Уведомления и рекомендации</Text>
-        <Text style={styles.offerText}>
-          Приложение само подсказывает, где акция, где дешевле, где много людей
-          и куда идти дальше.
+      <View style={styles.summaryCard}>
+        <Text style={styles.kicker}>ЧЕК-ЛИСТ ПЕРЕД ВЫХОДОМ</Text>
+        <Text style={styles.summaryTitle}>
+          {checklistDone} из {checklistItems.length} готово
         </Text>
+        <Text style={styles.cardMuted}>{city.cashTip}</Text>
       </View>
 
-      <Section title="Сейчас важно">
-        {alerts.map((alert) => (
-          <AlertWide key={alert.id} alert={alert} />
-        ))}
-      </Section>
+      {checklistItems.map((item) => {
+        const done = Boolean(checked[item.id]);
+        return (
+          <Pressable
+            key={item.id}
+            style={[styles.checkRow, done && styles.checkRowDone]}
+            onPress={() => setChecked({ ...checked, [item.id]: !done })}
+          >
+            <View style={[styles.checkIcon, done && styles.checkIconDone]}>
+              <Ionicons
+                name={done ? "checkmark" : item.icon}
+                size={20}
+                color={done ? colors.dark : colors.accent}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.cardMuted}>{item.subtitle}</Text>
+            </View>
+          </Pressable>
+        );
+      })}
 
-      <Section title="Акции / скидки">
-        {(dealPlaces.length ? dealPlaces : cheapPlaces.slice(0, 3)).map(
-          (place) => (
-            <PlaceCard key={place.id} place={place} country={country} />
-          ),
-        )}
-      </Section>
+      <View style={styles.summaryCard}>
+        <Text style={styles.kicker}>ОФЛАЙН-КАРТОЧКА</Text>
+        <Text style={styles.cardTitle}>
+          {country.emoji} {country.name}
+        </Text>
+        <Text style={styles.cardMuted}>
+          Полиция: {country.emergency.police} · Скорая:{" "}
+          {country.emergency.ambulance} · Туристическая помощь:{" "}
+          {country.emergency.tourist}
+        </Text>
+      </View>
     </ScrollView>
   );
 }
 
-function TaxiScreen({
+function SosScreen({
   country,
-  route,
   nextPoint,
 }: {
   country: Country;
-  route: RouteStep[];
   nextPoint?: RouteStep;
 }) {
   return (
@@ -2223,220 +1894,10 @@ function TaxiScreen({
       contentContainerStyle={styles.contentPad}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.summaryCard}>
-        <Text style={styles.kicker}>ТАКСИ</Text>
-        <Text style={styles.summaryTitle}>
-          До следующей точки — в один клик
-        </Text>
-        <Text style={styles.cardMuted}>
-          Открывается карта/Яндекс с маршрутом. Позже можно подключить прямые
-          API такси.
-        </Text>
-      </View>
-
-      {nextPoint ? (
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() => openTaxi(null, nextPoint)}
-        >
-          <Text style={styles.primaryButtonText}>
-            Вызвать такси до {nextPoint.title}
-          </Text>
-          <Ionicons name="car" size={19} color={colors.dark} />
-        </Pressable>
-      ) : null}
-
-      {route.map((step, index) => {
-        const previous = index > 0 ? route[index - 1] : null;
-        return (
-          <View key={step.id} style={styles.taxiCard}>
-            <Text style={styles.placeTitle}>
-              {index === 0 ? "Старт" : previous?.title} → {step.title}
-            </Text>
-            <Text style={styles.cardMuted}>{step.transportText}</Text>
-            <Text style={styles.bigMoney}>{money(step.taxiUZS, country)}</Text>
-            <Pressable
-              style={styles.secondaryButton}
-              onPress={() => openTaxi(previous, step)}
-            >
-              <Ionicons name="car" size={17} color={colors.dark} />
-              <Text style={styles.secondaryButtonText}>
-                Открыть такси / карту
-              </Text>
-            </Pressable>
-          </View>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
-function BudgetScreen({
-  country,
-  budgetUZS,
-  total,
-  remaining,
-  entryTotal,
-  spendTotal,
-  taxiTotal,
-  route,
-}: {
-  country: Country;
-  budgetUZS: number;
-  total: number;
-  remaining: number;
-  entryTotal: number;
-  spendTotal: number;
-  taxiTotal: number;
-  route: RouteStep[];
-}) {
-  return (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.contentPad}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.summaryCard}>
-        <Text style={styles.kicker}>БЮДЖЕТ</Text>
-        <Text style={styles.summaryTitle}>
-          {money(total, country)} из {money(budgetUZS, country)}
-        </Text>
-        <Text style={styles.cardMuted}>
-          Остаток: {money(remaining, country)}
-        </Text>
-      </View>
-
-      <ExpenseRow
-        icon="ticket"
-        title="Билеты / музеи"
-        value={money(entryTotal, country)}
-      />
-      <ExpenseRow
-        icon="restaurant"
-        title="Еда / покупки"
-        value={money(spendTotal, country)}
-      />
-      <ExpenseRow icon="car" title="Такси" value={money(taxiTotal, country)} />
-      <ExpenseRow icon="wallet" title="Итого" value={money(total, country)} />
-
-      <Section title="Расходы по точкам">
-        {route.map((step) => (
-          <View key={step.id} style={styles.expenseCard}>
-            <Text style={styles.cardTitle}>{step.title}</Text>
-            <Text style={styles.cardMuted}>
-              Вход {money(step.entryUZS, country)} • траты{" "}
-              {money(step.minSpendUZS, country)} • такси{" "}
-              {money(step.taxiUZS, country)}
-            </Text>
-          </View>
-        ))}
-      </Section>
-    </ScrollView>
-  );
-}
-
-function VoiceScreen({
-  messages,
-  chatText,
-  setChatText,
-  sendChat,
-  quickVoice,
-}: {
-  messages: ChatMessage[];
-  chatText: string;
-  setChatText: (v: string) => void;
-  sendChat: () => void;
-  quickVoice: (v: string) => void;
-}) {
-  return (
-    <View style={styles.voiceWrap}>
-      <View style={styles.voiceHeader}>
-        <View style={styles.micCircle}>
-          <Ionicons name="mic" size={34} color={colors.dark} />
-        </View>
-        <Text style={styles.voiceTitle}>Голосовой помощник</Text>
-        <Text style={styles.cardMuted}>
-          Пока команды вводятся текстом или быстрыми кнопками, а помощник
-          отвечает голосом. Реальную запись голоса подключим следующим модулем.
-        </Text>
-      </View>
-
-      <View style={styles.quickCommands}>
-        {[
-          "Где дешевле?",
-          "Где меньше людей?",
-          "Вызови такси",
-          "Покажи места",
-          "SOS помощь",
-        ].map((cmd) => (
-          <Pressable
-            key={cmd}
-            style={styles.commandChip}
-            onPress={() => quickVoice(cmd)}
-          >
-            <Text style={styles.commandText}>{cmd}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <ScrollView
-        style={styles.chatList}
-        contentContainerStyle={styles.chatPad}
-        showsVerticalScrollIndicator={false}
-      >
-        {messages.map((message) => (
-          <View
-            key={message.id}
-            style={[
-              styles.bubble,
-              message.role === "user"
-                ? styles.userBubble
-                : styles.assistantBubble,
-            ]}
-          >
-            <Text
-              style={[
-                styles.bubbleText,
-                message.role === "user" && styles.userBubbleText,
-              ]}
-            >
-              {message.text}
-            </Text>
-          </View>
-        ))}
-      </ScrollView>
-
-      <View style={styles.inputRow}>
-        <TextInput
-          value={chatText}
-          onChangeText={setChatText}
-          placeholder="Напиши команду для помощника..."
-          placeholderTextColor={colors.muted}
-          style={styles.chatInput}
-          multiline
-        />
-        <Pressable style={styles.sendButton} onPress={sendChat}>
-          <Ionicons name="send" size={18} color={colors.dark} />
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-function SosScreen({ country }: { country: Country }) {
-  return (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.contentPad}
-      showsVerticalScrollIndicator={false}
-    >
       <View style={styles.sosHero}>
         <Ionicons name="shield-checkmark" size={42} color="#FB7185" />
-        <Text style={styles.sosTitle}>Экстренная помощь</Text>
-        <Text style={styles.cardMuted}>
-          Звонок откроется прямо на телефоне. Номера зависят от выбранной
-          страны.
-        </Text>
+        <Text style={styles.sosTitle}>Я потерялся / нужна помощь</Text>
+        <Text style={styles.cardMuted}>Быстрые действия для туриста.</Text>
       </View>
 
       <SosButton
@@ -2459,169 +1920,78 @@ function SosScreen({ country }: { country: Country }) {
         number={country.emergency.tourist}
         icon="help-circle"
       />
+
+      <Section title="Фраза местному человеку">
+        <View style={styles.driverCard}>
+          <Text style={styles.driverTitle}>
+            Здравствуйте. Я турист. Помогите, пожалуйста, мне нужно добраться до
+            безопасного места.
+          </Text>
+        </View>
+      </Section>
+
+      {nextPoint ? (
+        <Pressable
+          style={styles.heroButton}
+          onPress={() => openTaxi(null, nextPoint)}
+        >
+          <Text style={styles.heroButtonText}>
+            Вызвать такси до следующей точки
+          </Text>
+          <Ionicons name="car" size={20} color={colors.dark} />
+        </Pressable>
+      ) : null}
     </ScrollView>
   );
 }
 
-function GuideCallModal({
-  visible,
-  phase,
-  text,
-  nextPoint,
-  onAccept,
-  onClose,
-  onReplay,
-  onTaxi,
+function RouteStepCard({
+  step,
+  previous,
+  country,
 }: {
-  visible: boolean;
-  phase: GuideCallPhase;
-  text: string;
-  nextPoint?: RouteStep;
-  onAccept: () => void;
-  onClose: () => void;
-  onReplay: () => void;
-  onTaxi: () => void;
+  step: RouteStep;
+  previous: RouteStep | null;
+  country: Country;
 }) {
-  const incoming = phase === "incoming";
-
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.callOverlay}>
-        <View style={styles.callCard}>
-          <View style={styles.callTop}>
-            <View
-              style={[styles.callAvatar, incoming && styles.callAvatarRinging]}
-            >
-              <Ionicons name="woman" size={42} color={colors.dark} />
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <Text style={styles.callName}>AI-гид ассистентка</Text>
-              <Text style={styles.callStatus}>
-                {incoming
-                  ? "Входящий звонок..."
-                  : "Звонок активен · говорит голосом"}
-              </Text>
-            </View>
-
-            <Pressable style={styles.callClose} onPress={onClose}>
-              <Ionicons name="close" size={22} color={colors.text} />
-            </Pressable>
-          </View>
-
-          <View style={styles.callWave}>
-            <View style={[styles.waveBar, incoming && styles.waveBarHot]} />
-            <View
-              style={[
-                styles.waveBar,
-                { height: 46 },
-                incoming && styles.waveBarHot,
-              ]}
-            />
-            <View
-              style={[
-                styles.waveBar,
-                { height: 30 },
-                incoming && styles.waveBarHot,
-              ]}
-            />
-            <View
-              style={[
-                styles.waveBar,
-                { height: 58 },
-                incoming && styles.waveBarHot,
-              ]}
-            />
-            <View
-              style={[
-                styles.waveBar,
-                { height: 36 },
-                incoming && styles.waveBarHot,
-              ]}
-            />
-          </View>
-
-          {incoming ? (
-            <>
-              <Text style={styles.incomingTitle}>
-                Тебе звонит персональная туристическая ассистентка
-              </Text>
-              <Text style={styles.incomingSub}>
-                Ответь на звонок — она голосом соберет маршрут на весь день.
-              </Text>
-
-              <View style={styles.callActions}>
-                <Pressable style={styles.declineButton} onPress={onClose}>
-                  <Ionicons name="call" size={22} color="#FFF" />
-                  <Text style={styles.declineText}>Сбросить</Text>
-                </Pressable>
-
-                <Pressable style={styles.acceptButton} onPress={onAccept}>
-                  <Ionicons name="call" size={22} color="#FFF" />
-                  <Text style={styles.acceptText}>Ответить</Text>
-                </Pressable>
-              </View>
-            </>
-          ) : (
-            <>
-              <Text style={styles.activeCallTitle}>Ассистентка говорит...</Text>
-
-              <View style={styles.callActions}>
-                <Pressable style={styles.callAction} onPress={onReplay}>
-                  <Ionicons name="volume-high" size={20} color={colors.dark} />
-                  <Text style={styles.callActionText}>Повторить голосом</Text>
-                </Pressable>
-
-                <Pressable style={styles.callActionDark} onPress={onTaxi}>
-                  <Ionicons name="car" size={20} color={colors.text} />
-                  <Text style={styles.callActionDarkText}>
-                    {nextPoint ? "Такси дальше" : "Нет точки"}
-                  </Text>
-                </Pressable>
-              </View>
-            </>
-          )}
-        </View>
+    <View style={styles.routeCard}>
+      <View style={styles.stepCircle}>
+        <Text style={styles.stepText}>{step.order}</Text>
       </View>
-    </Modal>
-  );
-}
-
-function AlertCard({ alert }: { alert: SmartAlert }) {
-  const icon: keyof typeof Ionicons.glyphMap =
-    alert.type === "deal"
-      ? "pricetag"
-      : alert.type === "crowd"
-        ? "people"
-        : alert.type === "safety"
-          ? "shield"
-          : alert.type === "food"
-            ? "restaurant"
-            : "navigate";
-
-  return (
-    <View style={styles.alertCard}>
-      <View style={styles.alertIcon}>
-        <Ionicons name={icon} size={20} color={colors.dark} />
-      </View>
-      <Text style={styles.alertTitle}>{alert.title}</Text>
-      <Text style={styles.alertText}>{alert.text}</Text>
-    </View>
-  );
-}
-
-function AlertWide({ alert }: { alert: SmartAlert }) {
-  return (
-    <View style={styles.alertWide}>
-      <Ionicons name="notifications" size={22} color={colors.accent} />
       <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{alert.title}</Text>
-        <Text style={styles.cardMuted}>{alert.text}</Text>
+        <View style={styles.cardTop}>
+          <Text style={styles.timeText}>{step.time}</Text>
+          <Text style={[styles.crowdText, { color: crowdColors[step.crowd] }]}>
+            {crowdLabels[step.crowd]}
+          </Text>
+        </View>
+        <Text style={styles.placeTitle}>{step.title}</Text>
+        <Text style={styles.cardMuted}>{step.subtitle}</Text>
+        {step.deal ? <Text style={styles.dealText}>🔥 {step.deal}</Text> : null}
+        <Text style={styles.info}>📍 {step.address}</Text>
+        <Text style={styles.info}>
+          🎫 Вход {money(step.entryUZS, country)} · траты{" "}
+          {money(step.spendUZS, country)}
+        </Text>
+        <Text style={styles.info}>
+          🚕 {step.transportText} · {money(step.taxiUZS, country)}
+        </Text>
+        <Text style={styles.tip}>📸 {step.photoTip}</Text>
+
+        <View style={styles.actionRow}>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => openTaxi(previous, step)}
+          >
+            <Ionicons name="car" size={17} color={colors.dark} />
+            <Text style={styles.secondaryButtonText}>Вызвать такси</Text>
+          </Pressable>
+          <Pressable style={styles.darkButton} onPress={() => openMap(step)}>
+            <Ionicons name="map" size={17} color={colors.text} />
+            <Text style={styles.darkButtonText}>Карта</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -2638,63 +2008,73 @@ function PlaceCard({ place, country }: { place: Place; country: Country }) {
       </View>
       <Text style={styles.placeTitle}>{place.title}</Text>
       <Text style={styles.cardMuted}>{place.subtitle}</Text>
-      {place.deal ? <Text style={styles.dealLine}>🔥 {place.deal}</Text> : null}
       <Text style={styles.info}>
-        ⭐ {place.rating} • {place.bestTime} • {place.durationMin} мин
+        Цена: {money(place.entryUZS + place.spendUZS, country)} ·{" "}
+        {place.bestTime}
       </Text>
-      <Text style={styles.info}>
-        Цена: {money(place.entryUZS + place.minSpendUZS, country)}
-      </Text>
-      <Text style={styles.tip}>Совет: {place.cheapTip}</Text>
-      <View style={styles.actionRow}>
-        <Pressable style={styles.darkButton} onPress={() => openMap(place)}>
-          <Ionicons name="map" size={17} color={colors.text} />
-          <Text style={styles.darkButtonText}>Карта</Text>
-        </Pressable>
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => openTaxi(null, place)}
-        >
-          <Ionicons name="car" size={17} color={colors.dark} />
-          <Text style={styles.secondaryButtonText}>Такси</Text>
-        </Pressable>
-      </View>
+      <Text style={styles.tip}>{place.cheapTip}</Text>
     </View>
   );
 }
 
 function CompactPlace({ place, country }: { place: Place; country: Country }) {
   return (
-    <Pressable style={styles.compactCard} onPress={() => openMap(place)}>
+    <View style={styles.compactCard}>
       <View style={{ flex: 1 }}>
         <Text style={styles.cardTitle}>{place.title}</Text>
         <Text style={styles.cardMuted}>
-          {categoryLabels[place.category]} •{" "}
-          {money(place.entryUZS + place.minSpendUZS, country)}
+          {categoryLabels[place.category]} ·{" "}
+          {money(place.entryUZS + place.spendUZS, country)}
         </Text>
       </View>
       <Text style={[styles.crowdText, { color: crowdColors[place.crowd] }]}>
         {crowdLabels[place.crowd]}
       </Text>
-    </Pressable>
+    </View>
   );
 }
 
-function ExpenseRow({
+function NoticeCard({ notice }: { notice: SmartNotice }) {
+  return (
+    <View style={styles.noticeCard}>
+      <View style={styles.noticeIcon}>
+        <Ionicons name={notice.icon} size={20} color={colors.dark} />
+      </View>
+      <Text style={styles.noticeTitle}>{notice.title}</Text>
+      <Text style={styles.noticeText}>{notice.text}</Text>
+    </View>
+  );
+}
+
+function NoticeWide({ notice }: { notice: SmartNotice }) {
+  return (
+    <View style={styles.noticeWide}>
+      <Ionicons name={notice.icon} size={22} color={colors.accent} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.cardTitle}>{notice.title}</Text>
+        <Text style={styles.cardMuted}>{notice.text}</Text>
+      </View>
+    </View>
+  );
+}
+
+function CommandButton({
   icon,
   title,
-  value,
+  subtitle,
+  onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
-  value: string;
+  subtitle: string;
+  onPress: () => void;
 }) {
   return (
-    <View style={styles.expenseRow}>
+    <Pressable style={styles.commandButton} onPress={onPress}>
       <Ionicons name={icon} size={22} color={colors.accent} />
-      <Text style={styles.expenseTitle}>{title}</Text>
-      <Text style={styles.expenseValue}>{value}</Text>
-    </View>
+      <Text style={styles.commandTitle}>{title}</Text>
+      <Text style={styles.commandSub}>{subtitle}</Text>
+    </Pressable>
   );
 }
 
@@ -2756,12 +2136,11 @@ function BottomTabs({
     icon: keyof typeof Ionicons.glyphMap;
   }[] = [
     { id: "home", title: "Главная", icon: "sparkles" },
+    { id: "live", title: "День", icon: "navigate" },
     { id: "route", title: "Маршрут", icon: "map" },
-    { id: "discover", title: "Места", icon: "compass" },
-    { id: "taxi", title: "Такси", icon: "car" },
-    { id: "budget", title: "Бюджет", icon: "wallet" },
-    { id: "offers", title: "Акции", icon: "notifications" },
-    { id: "voice", title: "Голос", icon: "mic" },
+    { id: "places", title: "Места", icon: "compass" },
+    { id: "tools", title: "Инструм.", icon: "construct" },
+    { id: "checklist", title: "Чек", icon: "checkbox" },
     { id: "sos", title: "SOS", icon: "shield" },
   ];
 
@@ -2772,8 +2151,8 @@ function BottomTabs({
         return (
           <Pressable
             key={tab.id}
-            onPress={() => setActive(tab.id)}
             style={[styles.tab, selected && styles.tabActive]}
+            onPress={() => setActive(tab.id)}
           >
             <Ionicons
               name={tab.icon}
@@ -2815,8 +2194,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
   },
   logo: {
     color: colors.text,
@@ -2831,7 +2210,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   headerRight: { flexDirection: "row", gap: 7, alignItems: "center" },
-  headerPill: {
+  pill: {
     backgroundColor: colors.panel2,
     borderWidth: 1,
     borderColor: colors.border,
@@ -2839,9 +2218,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
+  pillText: { color: colors.text, fontWeight: "900", fontSize: 11 },
   goodPill: { backgroundColor: "rgba(34,197,94,0.22)" },
   badPill: { backgroundColor: "rgba(251,113,133,0.22)" },
-  headerPillText: { color: colors.text, fontWeight: "900", fontSize: 11 },
   content: { flex: 1 },
   contentPad: { padding: 16, paddingBottom: 122 },
   hero: {
@@ -2853,7 +2232,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 20,
   },
-  sun: {
+  heroSun: {
     position: "absolute",
     width: 220,
     height: 220,
@@ -2881,9 +2260,8 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   heroText: { color: colors.soft, fontSize: 14, lineHeight: 22, marginTop: 10 },
-  heroButtons: { flexDirection: "row", gap: 10, marginTop: 18 },
-  primaryButton: {
-    flex: 1,
+  heroButton: {
+    marginTop: 18,
     minHeight: 58,
     borderRadius: 22,
     backgroundColor: colors.accent,
@@ -2892,43 +2270,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
-  primaryButtonText: { color: colors.dark, fontWeight: "900", fontSize: 15 },
-  voiceButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 22,
-    backgroundColor: colors.panel2,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  guideCallButton: {
-    marginTop: 14,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 22,
-    padding: 13,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  guideAvatarSmall: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.gold,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  guideCallTitle: { color: colors.text, fontWeight: "900", fontSize: 14 },
-  guideCallSub: {
-    color: colors.muted,
-    fontWeight: "700",
-    fontSize: 12,
-    marginTop: 2,
-  },
+  heroButtonText: { color: colors.dark, fontWeight: "900", fontSize: 15 },
   section: { marginBottom: 22 },
   sectionTitle: {
     color: colors.text,
@@ -2937,31 +2279,31 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   row: { gap: 10, paddingRight: 12 },
-  alertCard: {
-    width: 235,
+  noticeCard: {
+    width: 240,
     backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 24,
     padding: 15,
   },
-  alertIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  noticeIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: colors.gold,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
   },
-  alertTitle: { color: colors.text, fontWeight: "900", fontSize: 16 },
-  alertText: {
+  noticeTitle: { color: colors.text, fontWeight: "900", fontSize: 16 },
+  noticeText: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
     marginTop: 6,
   },
-  alertWide: {
+  noticeWide: {
     flexDirection: "row",
     gap: 12,
     backgroundColor: colors.panel,
@@ -2996,7 +2338,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginTop: 5,
   },
-  searchBox: {
+  inputBox: {
     marginTop: 10,
     backgroundColor: colors.panel,
     borderWidth: 1,
@@ -3008,7 +2350,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  searchInput: { flex: 1, color: colors.text, fontWeight: "800" },
+  input: { flex: 1, color: colors.text, fontWeight: "800" },
   budgetBox: {
     backgroundColor: colors.panel,
     borderWidth: 1,
@@ -3036,36 +2378,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   quickText: { color: colors.soft, fontWeight: "900", fontSize: 12 },
-  moodGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  moodCard: {
-    width: "31.5%",
-    minHeight: 78,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-  },
-  moodActive: { backgroundColor: colors.accent },
-  moodText: { color: colors.text, fontWeight: "900", fontSize: 12 },
-  moodTextActive: { color: colors.dark },
-  chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  chipActive: { backgroundColor: colors.accent },
-  chipText: { color: colors.soft, fontWeight: "900", fontSize: 12 },
-  chipTextActive: { color: colors.dark },
   summaryCard: {
     backgroundColor: colors.panel,
     borderWidth: 1,
@@ -3102,6 +2414,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 5,
   },
+  liveHero: {
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 28,
+    padding: 18,
+    marginBottom: 18,
+  },
+  liveTitle: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: "900",
+    marginTop: 8,
+  },
+  commandGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  commandButton: {
+    width: "31.5%",
+    minHeight: 96,
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  commandTitle: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: "900",
+    marginTop: 7,
+    textAlign: "center",
+  },
+  commandSub: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: "800",
+    marginTop: 3,
+    textAlign: "center",
+  },
   routeCard: {
     flexDirection: "row",
     gap: 12,
@@ -3135,7 +2487,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginTop: 6,
   },
-  dealLine: {
+  dealText: {
     color: colors.gold,
     fontWeight: "900",
     marginTop: 8,
@@ -3169,14 +2521,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   darkButtonText: { color: colors.text, fontWeight: "900", fontSize: 12 },
-  placeCard: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 24,
-    padding: 15,
-    marginBottom: 12,
-  },
   compactCard: {
     backgroundColor: colors.panel,
     borderWidth: 1,
@@ -3188,6 +2532,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
+  photoCard: {
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 22,
+    padding: 14,
+    marginBottom: 10,
+  },
+  placeCard: {
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 24,
+    padding: 15,
+    marginBottom: 12,
+  },
   badge: {
     color: colors.dark,
     backgroundColor: colors.accent,
@@ -3198,135 +2558,74 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     fontSize: 11,
   },
-  taxiCard: {
+  toolCard: {
     backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 24,
     padding: 15,
-    marginBottom: 12,
   },
-  bigMoney: {
-    color: colors.green,
-    fontSize: 22,
+  adviceText: {
+    color: colors.gold,
+    fontSize: 16,
     fontWeight: "900",
-    marginVertical: 10,
+    lineHeight: 23,
+    marginTop: 12,
   },
-  offerHero: {
-    backgroundColor: colors.gold,
-    borderRadius: 28,
-    padding: 20,
-    marginBottom: 16,
-  },
-  offerTitle: {
-    color: colors.dark,
-    fontSize: 27,
-    fontWeight: "900",
-    marginTop: 10,
-  },
-  offerText: {
-    color: "rgba(7,20,33,0.78)",
-    fontWeight: "800",
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  expenseRow: {
+  buyCard: {
     backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 22,
+    padding: 14,
+    marginBottom: 10,
+  },
+  phraseCard: {
+    backgroundColor: colors.panel2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    padding: 13,
+    marginBottom: 8,
+  },
+  phraseText: { color: colors.text, fontWeight: "900", lineHeight: 20 },
+  driverCard: {
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 24,
     padding: 15,
+  },
+  driverTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: "900",
+    lineHeight: 29,
+  },
+  checkRow: {
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 22,
+    padding: 14,
     marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
-  expenseTitle: { color: colors.text, fontWeight: "900", flex: 1 },
-  expenseValue: { color: colors.green, fontWeight: "900" },
-  expenseCard: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    padding: 13,
-    marginBottom: 8,
+  checkRowDone: {
+    backgroundColor: "rgba(157,220,255,0.18)",
+    borderColor: colors.accent,
   },
-  voiceWrap: { flex: 1, paddingBottom: 88 },
-  voiceHeader: {
-    margin: 16,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 28,
-    padding: 20,
-    alignItems: "center",
-  },
-  micCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  voiceTitle: { color: colors.text, fontSize: 25, fontWeight: "900" },
-  quickCommands: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  commandChip: {
+  checkIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: colors.panel2,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  commandText: { color: colors.text, fontWeight: "900", fontSize: 12 },
-  chatList: { flex: 1 },
-  chatPad: { padding: 16, paddingBottom: 18 },
-  bubble: { maxWidth: "84%", padding: 14, borderRadius: 22, marginBottom: 10 },
-  assistantBubble: {
-    backgroundColor: colors.panel,
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  userBubble: { backgroundColor: colors.accent, alignSelf: "flex-end" },
-  bubbleText: { color: colors.text, lineHeight: 20, fontWeight: "700" },
-  userBubbleText: { color: colors.dark },
-  inputRow: {
-    flexDirection: "row",
-    gap: 10,
-    padding: 14,
-    borderTopWidth: 1,
-    borderColor: colors.border,
-  },
-  chatInput: {
-    flex: 1,
-    minHeight: 48,
-    maxHeight: 120,
-    backgroundColor: colors.panel,
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.text,
-    fontWeight: "700",
-  },
-  sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 18,
-    backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
   },
+  checkIconDone: { backgroundColor: colors.accent },
   sosHero: {
     backgroundColor: colors.panel,
     borderWidth: 1,
@@ -3352,131 +2651,6 @@ const styles = StyleSheet.create({
   },
   sosButtonTitle: { color: "#FFF", fontSize: 17, fontWeight: "900" },
   sosNumber: { color: "#FECACA", marginTop: 3, fontWeight: "800" },
-  callOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.72)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 18,
-  },
-  callCard: {
-    width: "100%",
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 34,
-    padding: 18,
-  },
-  callTop: { flexDirection: "row", alignItems: "center", gap: 12 },
-  callAvatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: colors.gold,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  callAvatarRinging: { borderWidth: 4, borderColor: "rgba(255,255,255,0.35)" },
-  callName: { color: colors.text, fontWeight: "900", fontSize: 19 },
-  callStatus: { color: colors.muted, fontWeight: "800", marginTop: 3 },
-  callClose: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.panel2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  callWave: {
-    height: 76,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginVertical: 18,
-  },
-  waveBar: {
-    width: 10,
-    height: 22,
-    borderRadius: 999,
-    backgroundColor: colors.accent,
-  },
-  waveBarHot: { backgroundColor: colors.gold },
-  callText: {
-    color: colors.soft,
-    fontSize: 15,
-    lineHeight: 23,
-    fontWeight: "700",
-  },
-  incomingTitle: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: "900",
-    textAlign: "center",
-    marginTop: 4,
-  },
-  incomingSub: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: "800",
-    textAlign: "center",
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  activeCallTitle: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: "900",
-    textAlign: "center",
-    marginTop: 4,
-  },
-  callActions: { flexDirection: "row", gap: 10, marginTop: 18 },
-  callAction: {
-    flex: 1,
-    minHeight: 50,
-    borderRadius: 18,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  callActionText: { color: colors.dark, fontWeight: "900" },
-  callActionDark: {
-    flex: 1,
-    minHeight: 50,
-    borderRadius: 18,
-    backgroundColor: colors.panel2,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  callActionDarkText: { color: colors.text, fontWeight: "900" },
-  acceptButton: {
-    flex: 1,
-    minHeight: 56,
-    borderRadius: 999,
-    backgroundColor: "#22C55E",
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  acceptText: { color: "#FFF", fontWeight: "900", fontSize: 15 },
-  declineButton: {
-    flex: 1,
-    minHeight: 56,
-    borderRadius: 999,
-    backgroundColor: "#EF4444",
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
-  declineText: { color: "#FFF", fontWeight: "900", fontSize: 15 },
   tabs: {
     position: "absolute",
     left: 8,
