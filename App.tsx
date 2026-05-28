@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import * as Speech from "expo-speech";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Linking,
@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  Vibration,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,6 +37,7 @@ type Category =
   | "deal";
 type Crowd = "low" | "medium" | "high";
 type Mood = "calm" | "family" | "romantic" | "active" | "shopping";
+type GuideCallPhase = "incoming" | "active";
 
 type Country = {
   id: string;
@@ -1293,7 +1295,12 @@ export default function App() {
     },
   ]);
   const [guideCallOpen, setGuideCallOpen] = useState(false);
+  const [guideCallPhase, setGuideCallPhase] =
+    useState<GuideCallPhase>("incoming");
   const [guideCallText, setGuideCallText] = useState("");
+  const [femaleVoiceId, setFemaleVoiceId] = useState<string | undefined>(
+    undefined,
+  );
 
   const country = countryById(countryId);
   const city = cityById(cityId);
@@ -1335,6 +1342,53 @@ export default function App() {
   const cheapPlaces = [...cityPlaces].sort(
     (a, b) => a.entryUZS + a.minSpendUZS - (b.entryUZS + b.minSpendUZS),
   );
+
+  useEffect(() => {
+    Speech.getAvailableVoicesAsync()
+      .then((voices) => {
+        const russianFemale =
+          voices.find(
+            (voice) =>
+              voice.language?.toLowerCase().startsWith("ru") &&
+              /female|woman|anna|milena|oksana|alena|yelena|katya|google/i.test(
+                `${voice.name} ${voice.identifier}`,
+              ),
+          ) ??
+          voices.find((voice) =>
+            voice.language?.toLowerCase().startsWith("ru"),
+          ) ??
+          voices.find((voice) =>
+            /female|woman|anna|milena|oksana|alena|yelena|katya|google/i.test(
+              `${voice.name} ${voice.identifier}`,
+            ),
+          );
+
+        setFemaleVoiceId(russianFemale?.identifier);
+      })
+      .catch(() => {
+        setFemaleVoiceId(undefined);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (guideCallOpen && guideCallPhase === "incoming") {
+      Vibration.vibrate([0, 650, 260, 650, 260, 650], true);
+      return () => Vibration.cancel();
+    }
+
+    Vibration.cancel();
+    return undefined;
+  }, [guideCallOpen, guideCallPhase]);
+
+  const speakFemale = (textToSpeak: string) => {
+    Speech.stop();
+    Speech.speak(textToSpeak, {
+      language: "ru-RU",
+      voice: femaleVoiceId,
+      pitch: 1.18,
+      rate: 0.9,
+    });
+  };
 
   const setCountry = (id: string) => {
     setCountryId(id);
@@ -1425,7 +1479,7 @@ export default function App() {
       { id: `a-${Date.now()}`, role: "assistant", text: answer },
     ]);
     setChatText("");
-    speak(answer);
+    speakFemale(answer);
   };
 
   const quickVoice = (command: string) => {
@@ -1435,7 +1489,7 @@ export default function App() {
       { id: `u-${Date.now()}`, role: "user", text: command },
       { id: `a-${Date.now()}`, role: "assistant", text: answer },
     ]);
-    speak(answer);
+    speakFemale(answer);
   };
 
   const startGuideCall = () => {
@@ -1445,12 +1499,25 @@ export default function App() {
           .join(". ")
       : "сначала выберу лучшие точки города, потом рассчитаю такси и бюджет.";
 
-    const intro = `Привет, красавчик. Я твоя персональная туристическая ассистентка. Сейчас помогу собрать тебе красивый маршрут на весь день. Сегодня план такой: ${plan}. Бюджет примерно ${money(total, country)}, остаток ${money(remaining, country)}. Если хочешь, я сразу открою такси до следующей точки.`;
+    const intro = `Привет, красавчик. Я твоя персональная туристическая ассистентка. Сейчас соберу тебе красивый маршрут на весь день. Слушай план: ${plan}. По деньгам выходит примерно ${money(total, country)}. Остаток: ${money(remaining, country)}. Я буду вести тебя от точки к точке, подсказывать где дешевле, где много людей и когда лучше вызвать такси.`;
 
     setGuideCallText(intro);
+    setGuideCallPhase("incoming");
     setGuideCallOpen(true);
+  };
+
+  const acceptGuideCall = () => {
+    setGuideCallPhase("active");
     setTab("route");
-    speak(intro);
+    Vibration.cancel();
+    speakFemale(guideCallText);
+  };
+
+  const closeGuideCall = () => {
+    Speech.stop();
+    Vibration.cancel();
+    setGuideCallOpen(false);
+    setGuideCallPhase("incoming");
   };
 
   return (
@@ -1554,13 +1621,12 @@ export default function App() {
 
         <GuideCallModal
           visible={guideCallOpen}
+          phase={guideCallPhase}
           text={guideCallText}
           nextPoint={nextPoint}
-          onClose={() => {
-            Speech.stop();
-            setGuideCallOpen(false);
-          }}
-          onReplay={() => speak(guideCallText)}
+          onAccept={acceptGuideCall}
+          onClose={closeGuideCall}
+          onReplay={() => speakFemale(guideCallText)}
           onTaxi={() => {
             if (nextPoint) openTaxi(null, nextPoint);
           }}
@@ -2337,19 +2403,25 @@ function SosScreen({ country }: { country: Country }) {
 
 function GuideCallModal({
   visible,
+  phase,
   text,
   nextPoint,
+  onAccept,
   onClose,
   onReplay,
   onTaxi,
 }: {
   visible: boolean;
+  phase: GuideCallPhase;
   text: string;
   nextPoint?: RouteStep;
+  onAccept: () => void;
   onClose: () => void;
   onReplay: () => void;
   onTaxi: () => void;
 }) {
+  const incoming = phase === "incoming";
+
   return (
     <Modal
       visible={visible}
@@ -2360,43 +2432,98 @@ function GuideCallModal({
       <View style={styles.callOverlay}>
         <View style={styles.callCard}>
           <View style={styles.callTop}>
-            <View style={styles.callAvatar}>
+            <View
+              style={[styles.callAvatar, incoming && styles.callAvatarRinging]}
+            >
               <Ionicons name="woman" size={42} color={colors.dark} />
             </View>
+
             <View style={{ flex: 1 }}>
-              <Text style={styles.callName}>Твоя AI-гид ассистентка</Text>
+              <Text style={styles.callName}>AI-гид ассистентка</Text>
               <Text style={styles.callStatus}>
-                Внутренний звонок · маршрут на весь день
+                {incoming
+                  ? "Входящий звонок..."
+                  : "Звонок активен · говорит голосом"}
               </Text>
             </View>
+
             <Pressable style={styles.callClose} onPress={onClose}>
               <Ionicons name="close" size={22} color={colors.text} />
             </Pressable>
           </View>
 
           <View style={styles.callWave}>
-            <View style={styles.waveBar} />
-            <View style={[styles.waveBar, { height: 42 }]} />
-            <View style={[styles.waveBar, { height: 28 }]} />
-            <View style={[styles.waveBar, { height: 52 }]} />
-            <View style={[styles.waveBar, { height: 34 }]} />
+            <View style={[styles.waveBar, incoming && styles.waveBarHot]} />
+            <View
+              style={[
+                styles.waveBar,
+                { height: 46 },
+                incoming && styles.waveBarHot,
+              ]}
+            />
+            <View
+              style={[
+                styles.waveBar,
+                { height: 30 },
+                incoming && styles.waveBarHot,
+              ]}
+            />
+            <View
+              style={[
+                styles.waveBar,
+                { height: 58 },
+                incoming && styles.waveBarHot,
+              ]}
+            />
+            <View
+              style={[
+                styles.waveBar,
+                { height: 36 },
+                incoming && styles.waveBarHot,
+              ]}
+            />
           </View>
 
-          <Text style={styles.callText}>{text}</Text>
-
-          <View style={styles.callActions}>
-            <Pressable style={styles.callAction} onPress={onReplay}>
-              <Ionicons name="volume-high" size={20} color={colors.dark} />
-              <Text style={styles.callActionText}>Повторить</Text>
-            </Pressable>
-
-            <Pressable style={styles.callActionDark} onPress={onTaxi}>
-              <Ionicons name="car" size={20} color={colors.text} />
-              <Text style={styles.callActionDarkText}>
-                {nextPoint ? "Такси дальше" : "Нет точки"}
+          {incoming ? (
+            <>
+              <Text style={styles.incomingTitle}>
+                Тебе звонит персональная туристическая ассистентка
               </Text>
-            </Pressable>
-          </View>
+              <Text style={styles.incomingSub}>
+                Ответь на звонок — она голосом соберет маршрут на весь день.
+              </Text>
+
+              <View style={styles.callActions}>
+                <Pressable style={styles.declineButton} onPress={onClose}>
+                  <Ionicons name="call" size={22} color="#FFF" />
+                  <Text style={styles.declineText}>Сбросить</Text>
+                </Pressable>
+
+                <Pressable style={styles.acceptButton} onPress={onAccept}>
+                  <Ionicons name="call" size={22} color="#FFF" />
+                  <Text style={styles.acceptText}>Ответить</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.activeCallTitle}>Ассистентка говорит...</Text>
+
+              <View style={styles.callActions}>
+                <Pressable style={styles.callAction} onPress={onReplay}>
+                  <Ionicons name="volume-high" size={20} color={colors.dark} />
+                  <Text style={styles.callActionText}>Повторить голосом</Text>
+                </Pressable>
+
+                <Pressable style={styles.callActionDark} onPress={onTaxi}>
+                  <Ionicons name="car" size={20} color={colors.text} />
+                  <Text style={styles.callActionDarkText}>
+                    {nextPoint ? "Такси дальше" : "Нет точки"}
+                  </Text>
+                </Pressable>
+              </View>
+            </>
+          )}
         </View>
       </View>
     </Modal>
@@ -3187,6 +3314,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  callAvatarRinging: { borderWidth: 4, borderColor: "rgba(255,255,255,0.35)" },
   callName: { color: colors.text, fontWeight: "900", fontSize: 19 },
   callStatus: { color: colors.muted, fontWeight: "800", marginTop: 3 },
   callClose: {
@@ -3211,11 +3339,34 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.accent,
   },
+  waveBarHot: { backgroundColor: colors.gold },
   callText: {
     color: colors.soft,
     fontSize: 15,
     lineHeight: 23,
     fontWeight: "700",
+  },
+  incomingTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: "900",
+    textAlign: "center",
+    marginTop: 4,
+  },
+  incomingSub: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: "800",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  activeCallTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: "900",
+    textAlign: "center",
+    marginTop: 4,
   },
   callActions: { flexDirection: "row", gap: 10, marginTop: 18 },
   callAction: {
@@ -3242,6 +3393,28 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   callActionDarkText: { color: colors.text, fontWeight: "900" },
+  acceptButton: {
+    flex: 1,
+    minHeight: 56,
+    borderRadius: 999,
+    backgroundColor: "#22C55E",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  acceptText: { color: "#FFF", fontWeight: "900", fontSize: 15 },
+  declineButton: {
+    flex: 1,
+    minHeight: 56,
+    borderRadius: 999,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  declineText: { color: "#FFF", fontWeight: "900", fontSize: 15 },
   tabs: {
     position: "absolute",
     left: 8,
