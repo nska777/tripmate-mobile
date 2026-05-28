@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import {
   Alert,
   Linking,
+  Modal,
   Platform,
   Pressable,
   SafeAreaView,
@@ -1291,6 +1292,8 @@ export default function App() {
       text: "Привет. Я твой туристический помощник. Скажи бюджет, город или спроси: где дешевле, где меньше людей, вызови такси, покажи места.",
     },
   ]);
+  const [guideCallOpen, setGuideCallOpen] = useState(false);
+  const [guideCallText, setGuideCallText] = useState("");
 
   const country = countryById(countryId);
   const city = cityById(cityId);
@@ -1435,6 +1438,21 @@ export default function App() {
     speak(answer);
   };
 
+  const startGuideCall = () => {
+    const plan = route.length
+      ? route
+          .map((item, index) => `${index + 1}. ${item.time} — ${item.title}`)
+          .join(". ")
+      : "сначала выберу лучшие точки города, потом рассчитаю такси и бюджет.";
+
+    const intro = `Привет, красавчик. Я твоя персональная туристическая ассистентка. Сейчас помогу собрать тебе красивый маршрут на весь день. Сегодня план такой: ${plan}. Бюджет примерно ${money(total, country)}, остаток ${money(remaining, country)}. Если хочешь, я сразу открою такси до следующей точки.`;
+
+    setGuideCallText(intro);
+    setGuideCallOpen(true);
+    setTab("route");
+    speak(intro);
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="light" />
@@ -1477,6 +1495,7 @@ export default function App() {
             remaining={remaining}
             onBuild={() => setTab("route")}
             onVoice={() => setTab("voice")}
+            onGuideCall={startGuideCall}
           />
         )}
 
@@ -1532,6 +1551,20 @@ export default function App() {
           />
         )}
         {tab === "sos" && <SosScreen country={country} />}
+
+        <GuideCallModal
+          visible={guideCallOpen}
+          text={guideCallText}
+          nextPoint={nextPoint}
+          onClose={() => {
+            Speech.stop();
+            setGuideCallOpen(false);
+          }}
+          onReplay={() => speak(guideCallText)}
+          onTaxi={() => {
+            if (nextPoint) openTaxi(null, nextPoint);
+          }}
+        />
 
         <BottomTabs active={tab} setActive={setTab} />
       </View>
@@ -1596,6 +1629,7 @@ function HomeScreen(props: {
   remaining: number;
   onBuild: () => void;
   onVoice: () => void;
+  onGuideCall: () => void;
 }) {
   return (
     <ScrollView
@@ -1626,6 +1660,21 @@ function HomeScreen(props: {
             <Ionicons name="mic" size={20} color={colors.text} />
           </Pressable>
         </View>
+
+        <Pressable style={styles.guideCallButton} onPress={props.onGuideCall}>
+          <View style={styles.guideAvatarSmall}>
+            <Ionicons name="call" size={18} color={colors.dark} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.guideCallTitle}>
+              Помоги составить маршрут сама
+            </Text>
+            <Text style={styles.guideCallSub}>
+              Персональная ассистентка озвучит план на весь день
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.soft} />
+        </Pressable>
       </View>
 
       <Section title="Умные рекомендации сейчас">
@@ -2286,6 +2335,74 @@ function SosScreen({ country }: { country: Country }) {
   );
 }
 
+function GuideCallModal({
+  visible,
+  text,
+  nextPoint,
+  onClose,
+  onReplay,
+  onTaxi,
+}: {
+  visible: boolean;
+  text: string;
+  nextPoint?: RouteStep;
+  onClose: () => void;
+  onReplay: () => void;
+  onTaxi: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.callOverlay}>
+        <View style={styles.callCard}>
+          <View style={styles.callTop}>
+            <View style={styles.callAvatar}>
+              <Ionicons name="woman" size={42} color={colors.dark} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.callName}>Твоя AI-гид ассистентка</Text>
+              <Text style={styles.callStatus}>
+                Внутренний звонок · маршрут на весь день
+              </Text>
+            </View>
+            <Pressable style={styles.callClose} onPress={onClose}>
+              <Ionicons name="close" size={22} color={colors.text} />
+            </Pressable>
+          </View>
+
+          <View style={styles.callWave}>
+            <View style={styles.waveBar} />
+            <View style={[styles.waveBar, { height: 42 }]} />
+            <View style={[styles.waveBar, { height: 28 }]} />
+            <View style={[styles.waveBar, { height: 52 }]} />
+            <View style={[styles.waveBar, { height: 34 }]} />
+          </View>
+
+          <Text style={styles.callText}>{text}</Text>
+
+          <View style={styles.callActions}>
+            <Pressable style={styles.callAction} onPress={onReplay}>
+              <Ionicons name="volume-high" size={20} color={colors.dark} />
+              <Text style={styles.callActionText}>Повторить</Text>
+            </Pressable>
+
+            <Pressable style={styles.callActionDark} onPress={onTaxi}>
+              <Ionicons name="car" size={20} color={colors.text} />
+              <Text style={styles.callActionDarkText}>
+                {nextPoint ? "Такси дальше" : "Нет точки"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 function AlertCard({ alert }: { alert: SmartAlert }) {
   const icon: keyof typeof Ionicons.glyphMap =
     alert.type === "deal"
@@ -2596,6 +2713,32 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
+  },
+  guideCallButton: {
+    marginTop: 14,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 22,
+    padding: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  guideAvatarSmall: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.gold,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  guideCallTitle: { color: colors.text, fontWeight: "900", fontSize: 14 },
+  guideCallSub: {
+    color: colors.muted,
+    fontWeight: "700",
+    fontSize: 12,
+    marginTop: 2,
   },
   section: { marginBottom: 22 },
   sectionTitle: {
@@ -3020,6 +3163,85 @@ const styles = StyleSheet.create({
   },
   sosButtonTitle: { color: "#FFF", fontSize: 17, fontWeight: "900" },
   sosNumber: { color: "#FECACA", marginTop: 3, fontWeight: "800" },
+  callOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 18,
+  },
+  callCard: {
+    width: "100%",
+    backgroundColor: colors.panel,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 34,
+    padding: 18,
+  },
+  callTop: { flexDirection: "row", alignItems: "center", gap: 12 },
+  callAvatar: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.gold,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  callName: { color: colors.text, fontWeight: "900", fontSize: 19 },
+  callStatus: { color: colors.muted, fontWeight: "800", marginTop: 3 },
+  callClose: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.panel2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  callWave: {
+    height: 76,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginVertical: 18,
+  },
+  waveBar: {
+    width: 10,
+    height: 22,
+    borderRadius: 999,
+    backgroundColor: colors.accent,
+  },
+  callText: {
+    color: colors.soft,
+    fontSize: 15,
+    lineHeight: 23,
+    fontWeight: "700",
+  },
+  callActions: { flexDirection: "row", gap: 10, marginTop: 18 },
+  callAction: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 18,
+    backgroundColor: colors.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  callActionText: { color: colors.dark, fontWeight: "900" },
+  callActionDark: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 18,
+    backgroundColor: colors.panel2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  callActionDarkText: { color: colors.text, fontWeight: "900" },
   tabs: {
     position: "absolute",
     left: 8,
