@@ -1,5 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import * as Speech from "expo-speech";
+import { Audio } from "expo-av";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -1381,45 +1382,64 @@ export default function App() {
     return undefined;
   }, [guideCallOpen, guideCallPhase]);
 
+  const prepareSpeakerAudio = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      });
+    } catch {
+      // Даже если AudioMode не поддержался, TTS ниже всё равно попробует говорить.
+    }
+  };
+
   const speakFemale = async (textToSpeak: string) => {
     const phrase = textToSpeak.trim();
     if (!phrase) return;
 
+    await prepareSpeakerAudio();
     Speech.stop();
 
-    const baseOptions = {
+    const cleanPhrase = phrase.length > 3800 ? phrase.slice(0, 3800) : phrase;
+
+    // Самый надежный режим: НЕ указываем voice-id.
+    // На многих Android voice-id ломает звук и TTS молчит.
+    const reliableOptions = {
       language: "ru-RU",
-      pitch: 1.18,
-      rate: 0.86,
+      pitch: 1.28,
+      rate: 0.78,
+      volume: 1.0,
     };
 
-    const trySpeak = (withVoice: boolean) => {
-      Speech.speak(phrase, {
-        ...baseOptions,
-        ...(withVoice && femaleVoiceId ? { voice: femaleVoiceId } : {}),
-        onError: () => {
-          Speech.stop();
-          Speech.speak(phrase, baseOptions);
-        },
-      });
-    };
+    Speech.speak(cleanPhrase, reliableOptions);
 
-    trySpeak(Boolean(femaleVoiceId));
-
-    // На части Android-устройств выбранный voice может молча не проиграться.
-    // Поэтому через секунду проверяем, идет ли речь, и запускаем системный голос без voice-id.
+    // Жесткий повторный запуск, если Android не начал говорить.
     setTimeout(async () => {
       try {
-        const isSpeaking = await Speech.isSpeakingAsync();
-        if (!isSpeaking) {
+        const speaking = await Speech.isSpeakingAsync();
+        if (!speaking) {
           Speech.stop();
-          Speech.speak(phrase, baseOptions);
+          await prepareSpeakerAudio();
+          Speech.speak(cleanPhrase, {
+            language: "ru-RU",
+            pitch: 1.12,
+            rate: 0.82,
+            volume: 1.0,
+          });
         }
       } catch {
         Speech.stop();
-        Speech.speak(phrase, baseOptions);
+        Speech.speak(cleanPhrase, {
+          language: "ru-RU",
+          pitch: 1.12,
+          rate: 0.82,
+          volume: 1.0,
+        });
       }
-    }, 1100);
+    }, 900);
   };
 
   const setCountry = (id: string) => {
@@ -1545,10 +1565,10 @@ export default function App() {
     setTab("route");
     Vibration.cancel();
 
-    // Даем модалке переключиться в состояние "звонок активен", затем запускаем речь.
+    // Сначала короткая фраза, чтобы сразу было понятно, что звук пошел.
     setTimeout(() => {
-      speakFemale(phrase);
-    }, 450);
+      speakFemale(`Алло, красавчик. Я на связи. ${phrase}`);
+    }, 650);
   };
 
   const closeGuideCall = () => {
@@ -1665,7 +1685,9 @@ export default function App() {
           onAccept={acceptGuideCall}
           onClose={closeGuideCall}
           onReplay={() =>
-            speakFemale(guideCallTextRef.current || guideCallText)
+            speakFemale(
+              `Повторяю маршрут. ${guideCallTextRef.current || guideCallText}`,
+            )
           }
           onTaxi={() => {
             if (nextPoint) openTaxi(null, nextPoint);
