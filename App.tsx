@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import * as Speech from "expo-speech";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Linking,
@@ -1301,6 +1301,7 @@ export default function App() {
   const [femaleVoiceId, setFemaleVoiceId] = useState<string | undefined>(
     undefined,
   );
+  const guideCallTextRef = useRef("");
 
   const country = countryById(countryId);
   const city = cityById(cityId);
@@ -1380,14 +1381,45 @@ export default function App() {
     return undefined;
   }, [guideCallOpen, guideCallPhase]);
 
-  const speakFemale = (textToSpeak: string) => {
+  const speakFemale = async (textToSpeak: string) => {
+    const phrase = textToSpeak.trim();
+    if (!phrase) return;
+
     Speech.stop();
-    Speech.speak(textToSpeak, {
+
+    const baseOptions = {
       language: "ru-RU",
-      voice: femaleVoiceId,
       pitch: 1.18,
-      rate: 0.9,
-    });
+      rate: 0.86,
+    };
+
+    const trySpeak = (withVoice: boolean) => {
+      Speech.speak(phrase, {
+        ...baseOptions,
+        ...(withVoice && femaleVoiceId ? { voice: femaleVoiceId } : {}),
+        onError: () => {
+          Speech.stop();
+          Speech.speak(phrase, baseOptions);
+        },
+      });
+    };
+
+    trySpeak(Boolean(femaleVoiceId));
+
+    // На части Android-устройств выбранный voice может молча не проиграться.
+    // Поэтому через секунду проверяем, идет ли речь, и запускаем системный голос без voice-id.
+    setTimeout(async () => {
+      try {
+        const isSpeaking = await Speech.isSpeakingAsync();
+        if (!isSpeaking) {
+          Speech.stop();
+          Speech.speak(phrase, baseOptions);
+        }
+      } catch {
+        Speech.stop();
+        Speech.speak(phrase, baseOptions);
+      }
+    }, 1100);
   };
 
   const setCountry = (id: string) => {
@@ -1501,16 +1533,22 @@ export default function App() {
 
     const intro = `Привет, красавчик. Я твоя персональная туристическая ассистентка. Сейчас соберу тебе красивый маршрут на весь день. Слушай план: ${plan}. По деньгам выходит примерно ${money(total, country)}. Остаток: ${money(remaining, country)}. Я буду вести тебя от точки к точке, подсказывать где дешевле, где много людей и когда лучше вызвать такси.`;
 
+    guideCallTextRef.current = intro;
     setGuideCallText(intro);
     setGuideCallPhase("incoming");
     setGuideCallOpen(true);
   };
 
   const acceptGuideCall = () => {
+    const phrase = guideCallTextRef.current || guideCallText;
     setGuideCallPhase("active");
     setTab("route");
     Vibration.cancel();
-    speakFemale(guideCallText);
+
+    // Даем модалке переключиться в состояние "звонок активен", затем запускаем речь.
+    setTimeout(() => {
+      speakFemale(phrase);
+    }, 450);
   };
 
   const closeGuideCall = () => {
@@ -1626,7 +1664,9 @@ export default function App() {
           nextPoint={nextPoint}
           onAccept={acceptGuideCall}
           onClose={closeGuideCall}
-          onReplay={() => speakFemale(guideCallText)}
+          onReplay={() =>
+            speakFemale(guideCallTextRef.current || guideCallText)
+          }
           onTaxi={() => {
             if (nextPoint) openTaxi(null, nextPoint);
           }}
