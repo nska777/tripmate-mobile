@@ -16,23 +16,9 @@ import { Ionicons } from "@expo/vector-icons";
 
 type Tab = "home" | "live" | "route" | "places" | "tools" | "checklist" | "sos";
 type CountryId = "uz" | "ae" | "tr" | "kz" | "fr" | "it" | "us" | "jp";
-type Category =
-  | "breakfast"
-  | "sight"
-  | "museum"
-  | "food"
-  | "shop"
-  | "nature"
-  | "photo"
-  | "night";
+type Category = "breakfast" | "sight" | "museum" | "food" | "shop" | "nature" | "photo" | "night";
 type Crowd = "low" | "medium" | "high";
-type TravelMode =
-  | "normal"
-  | "tired"
-  | "eat"
-  | "cheap"
-  | "beautiful"
-  | "nightSafe";
+type TravelMode = "normal" | "tired" | "eat" | "cheap" | "beautiful" | "nightSafe";
 
 type Country = {
   id: CountryId;
@@ -112,72 +98,14 @@ type CheckItem = {
 };
 
 const countries: Country[] = [
-  {
-    id: "uz",
-    name: "Узбекистан",
-    emoji: "🇺🇿",
-    currency: "UZS",
-    emergency: {
-      police: "102",
-      ambulance: "103",
-      fire: "101",
-      tourist: "1173",
-    },
-  },
-  {
-    id: "ae",
-    name: "ОАЭ",
-    emoji: "🇦🇪",
-    currency: "AED",
-    emergency: { police: "999", ambulance: "998", fire: "997", tourist: "901" },
-  },
-  {
-    id: "tr",
-    name: "Турция",
-    emoji: "🇹🇷",
-    currency: "TRY",
-    emergency: { police: "112", ambulance: "112", fire: "112", tourist: "112" },
-  },
-  {
-    id: "kz",
-    name: "Казахстан",
-    emoji: "🇰🇿",
-    currency: "KZT",
-    emergency: { police: "102", ambulance: "103", fire: "101", tourist: "112" },
-  },
-  {
-    id: "fr",
-    name: "Франция",
-    emoji: "🇫🇷",
-    currency: "EUR",
-    emergency: { police: "17", ambulance: "15", fire: "18", tourist: "112" },
-  },
-  {
-    id: "it",
-    name: "Италия",
-    emoji: "🇮🇹",
-    currency: "EUR",
-    emergency: { police: "112", ambulance: "118", fire: "115", tourist: "112" },
-  },
-  {
-    id: "us",
-    name: "США",
-    emoji: "🇺🇸",
-    currency: "USD",
-    emergency: { police: "911", ambulance: "911", fire: "911", tourist: "911" },
-  },
-  {
-    id: "jp",
-    name: "Япония",
-    emoji: "🇯🇵",
-    currency: "JPY",
-    emergency: {
-      police: "110",
-      ambulance: "119",
-      fire: "119",
-      tourist: "050-3816-2787",
-    },
-  },
+  { id: "uz", name: "Узбекистан", emoji: "🇺🇿", currency: "UZS", emergency: { police: "102", ambulance: "103", fire: "101", tourist: "1173" } },
+  { id: "ae", name: "ОАЭ", emoji: "🇦🇪", currency: "AED", emergency: { police: "999", ambulance: "998", fire: "997", tourist: "901" } },
+  { id: "tr", name: "Турция", emoji: "🇹🇷", currency: "TRY", emergency: { police: "112", ambulance: "112", fire: "112", tourist: "112" } },
+  { id: "kz", name: "Казахстан", emoji: "🇰🇿", currency: "KZT", emergency: { police: "102", ambulance: "103", fire: "101", tourist: "112" } },
+  { id: "fr", name: "Франция", emoji: "🇫🇷", currency: "EUR", emergency: { police: "17", ambulance: "15", fire: "18", tourist: "112" } },
+  { id: "it", name: "Италия", emoji: "🇮🇹", currency: "EUR", emergency: { police: "112", ambulance: "118", fire: "115", tourist: "112" } },
+  { id: "us", name: "США", emoji: "🇺🇸", currency: "USD", emergency: { police: "911", ambulance: "911", fire: "911", tourist: "911" } },
+  { id: "jp", name: "Япония", emoji: "🇯🇵", currency: "JPY", emergency: { police: "110", ambulance: "119", fire: "119", tourist: "050-3816-2787" } },
 ];
 
 const cities: City[] = [
@@ -188,27 +116,11 @@ const cities: City[] = [
     subtitle: "Базары, плов, парки, современный город",
     taxiBaseUZS: 12000,
     taxiKmUZS: 3200,
-    cashTip:
-      "На день лучше иметь наличными 250 000–450 000 UZS: базар, мелкие покупки, чай, вода.",
+    cashTip: "На день лучше иметь наличными 250 000–450 000 UZS: базар, мелкие покупки, чай, вода.",
     buyList: [
-      {
-        title: "Сухофрукты",
-        normalPriceUZS: "60 000–180 000 UZS",
-        where: "Чорсу / Алайский базар",
-        tip: "Сначала попробуй, потом покупай. Сравни минимум 2 ряда.",
-      },
-      {
-        title: "Специи",
-        normalPriceUZS: "20 000–70 000 UZS",
-        where: "Чорсу",
-        tip: "Проси маленькую фасовку, не бери огромный набор сразу.",
-      },
-      {
-        title: "Лепешки",
-        normalPriceUZS: "5 000–15 000 UZS",
-        where: "рынок / тандыр",
-        tip: "Бери свежие утром или до обеда.",
-      },
+      { title: "Сухофрукты", normalPriceUZS: "60 000–180 000 UZS", where: "Чорсу / Алайский базар", tip: "Сначала попробуй, потом покупай. Сравни минимум 2 ряда." },
+      { title: "Специи", normalPriceUZS: "20 000–70 000 UZS", where: "Чорсу", tip: "Проси маленькую фасовку, не бери огромный набор сразу." },
+      { title: "Лепешки", normalPriceUZS: "5 000–15 000 UZS", where: "рынок / тандыр", tip: "Бери свежие утром или до обеда." },
     ],
   },
   {
@@ -218,27 +130,11 @@ const cities: City[] = [
     subtitle: "Регистан, Шахи-Зинда, базары, сладости",
     taxiBaseUZS: 10000,
     taxiKmUZS: 3000,
-    cashTip:
-      "Для базара и сувениров лучше иметь 300 000–600 000 UZS наличными.",
+    cashTip: "Для базара и сувениров лучше иметь 300 000–600 000 UZS наличными.",
     buyList: [
-      {
-        title: "Самаркандская лепешка",
-        normalPriceUZS: "8 000–20 000 UZS",
-        where: "Сиабский базар",
-        tip: "Не бери у первой точки у входа, дальше может быть дешевле.",
-      },
-      {
-        title: "Сухофрукты и орехи",
-        normalPriceUZS: "70 000–250 000 UZS",
-        where: "Сиабский базар",
-        tip: "Сравни 3 цены, торгуйся спокойно.",
-      },
-      {
-        title: "Керамика",
-        normalPriceUZS: "80 000–350 000 UZS",
-        where: "сувенирные ряды",
-        tip: "Проверь упаковку, чтобы довезти целым.",
-      },
+      { title: "Самаркандская лепешка", normalPriceUZS: "8 000–20 000 UZS", where: "Сиабский базар", tip: "Не бери у первой точки у входа, дальше может быть дешевле." },
+      { title: "Сухофрукты и орехи", normalPriceUZS: "70 000–250 000 UZS", where: "Сиабский базар", tip: "Сравни 3 цены, торгуйся спокойно." },
+      { title: "Керамика", normalPriceUZS: "80 000–350 000 UZS", where: "сувенирные ряды", tip: "Проверь упаковку, чтобы довезти целым." },
     ],
   },
   {
@@ -248,27 +144,11 @@ const cities: City[] = [
     subtitle: "Старый город, ремесла, минареты",
     taxiBaseUZS: 10000,
     taxiKmUZS: 2800,
-    cashTip:
-      "В старом городе удобно иметь 300 000 UZS наличными на чай, сувениры и мелкие входы.",
+    cashTip: "В старом городе удобно иметь 300 000 UZS наличными на чай, сувениры и мелкие входы.",
     buyList: [
-      {
-        title: "Сюзане",
-        normalPriceUZS: "250 000–1 500 000 UZS",
-        where: "старый город",
-        tip: "Смотри качество вышивки и торгуйся.",
-      },
-      {
-        title: "Миниатюры",
-        normalPriceUZS: "100 000–500 000 UZS",
-        where: "ремесленные лавки",
-        tip: "Лучше покупать у мастера, а не у перекупщика.",
-      },
-      {
-        title: "Чай и специи",
-        normalPriceUZS: "30 000–120 000 UZS",
-        where: "рынок / лавки",
-        tip: "Проси попробовать аромат.",
-      },
+      { title: "Сюзане", normalPriceUZS: "250 000–1 500 000 UZS", where: "старый город", tip: "Смотри качество вышивки и торгуйся." },
+      { title: "Миниатюры", normalPriceUZS: "100 000–500 000 UZS", where: "ремесленные лавки", tip: "Лучше покупать у мастера, а не у перекупщика." },
+      { title: "Чай и специи", normalPriceUZS: "30 000–120 000 UZS", where: "рынок / лавки", tip: "Проси попробовать аромат." },
     ],
   },
   {
@@ -280,24 +160,9 @@ const cities: City[] = [
     taxiKmUZS: 2600,
     cashTip: "Внутри Ичан-Калы удобно иметь 250 000–400 000 UZS наличными.",
     buyList: [
-      {
-        title: "Шапка / тюбетейка",
-        normalPriceUZS: "50 000–150 000 UZS",
-        where: "Ичан-Кала",
-        tip: "Покупай после сравнения 2–3 лавок.",
-      },
-      {
-        title: "Керамика",
-        normalPriceUZS: "90 000–400 000 UZS",
-        where: "мастерские",
-        tip: "Проси хорошо упаковать.",
-      },
-      {
-        title: "Деревянные изделия",
-        normalPriceUZS: "80 000–350 000 UZS",
-        where: "ремесленные ряды",
-        tip: "Проверь трещины и лак.",
-      },
+      { title: "Шапка / тюбетейка", normalPriceUZS: "50 000–150 000 UZS", where: "Ичан-Кала", tip: "Покупай после сравнения 2–3 лавок." },
+      { title: "Керамика", normalPriceUZS: "90 000–400 000 UZS", where: "мастерские", tip: "Проси хорошо упаковать." },
+      { title: "Деревянные изделия", normalPriceUZS: "80 000–350 000 UZS", where: "ремесленные ряды", tip: "Проверь трещины и лак." },
     ],
   },
   {
@@ -307,27 +172,11 @@ const cities: City[] = [
     subtitle: "Mall, Creek, Marina, Burj Khalifa",
     taxiBaseUZS: 19000,
     taxiKmUZS: 8500,
-    cashTip:
-      "В Дубае карта удобнее, наличные нужны для рынков и мелких покупок: 150–300 AED.",
+    cashTip: "В Дубае карта удобнее, наличные нужны для рынков и мелких покупок: 150–300 AED.",
     buyList: [
-      {
-        title: "Финики",
-        normalPriceUZS: "80 000–350 000 UZS",
-        where: "Deira / супермаркеты",
-        tip: "В супермаркете часто дешевле, чем в туристической лавке.",
-      },
-      {
-        title: "Арабские духи",
-        normalPriceUZS: "150 000–800 000 UZS",
-        where: "Deira / парфюм-рынок",
-        tip: "Торгуйся, пробуй на коже.",
-      },
-      {
-        title: "Шоколад / подарки",
-        normalPriceUZS: "70 000–300 000 UZS",
-        where: "Dubai Mall / Carrefour",
-        tip: "Для подарков супермаркет выгоднее.",
-      },
+      { title: "Финики", normalPriceUZS: "80 000–350 000 UZS", where: "Deira / супермаркеты", tip: "В супермаркете часто дешевле, чем в туристической лавке." },
+      { title: "Арабские духи", normalPriceUZS: "150 000–800 000 UZS", where: "Deira / парфюм-рынок", tip: "Торгуйся, пробуй на коже." },
+      { title: "Шоколад / подарки", normalPriceUZS: "70 000–300 000 UZS", where: "Dubai Mall / Carrefour", tip: "Для подарков супермаркет выгоднее." },
     ],
   },
   {
@@ -339,24 +188,9 @@ const cities: City[] = [
     taxiKmUZS: 6500,
     cashTip: "Для базара и уличной еды держи наличными 1 000–2 000 TRY.",
     buyList: [
-      {
-        title: "Лукум",
-        normalPriceUZS: "80 000–300 000 UZS",
-        where: "Египетский базар",
-        tip: "Пробуй перед покупкой и сравни цены.",
-      },
-      {
-        title: "Чай / кофе",
-        normalPriceUZS: "60 000–250 000 UZS",
-        where: "рынок / супермаркет",
-        tip: "Супермаркет часто честнее по цене.",
-      },
-      {
-        title: "Текстиль",
-        normalPriceUZS: "150 000–700 000 UZS",
-        where: "Гранд базар",
-        tip: "Торгуйся и проверяй качество шва.",
-      },
+      { title: "Лукум", normalPriceUZS: "80 000–300 000 UZS", where: "Египетский базар", tip: "Пробуй перед покупкой и сравни цены." },
+      { title: "Чай / кофе", normalPriceUZS: "60 000–250 000 UZS", where: "рынок / супермаркет", tip: "Супермаркет часто честнее по цене." },
+      { title: "Текстиль", normalPriceUZS: "150 000–700 000 UZS", where: "Гранд базар", tip: "Торгуйся и проверяй качество шва." },
     ],
   },
   {
@@ -366,27 +200,11 @@ const cities: City[] = [
     subtitle: "Горы, Кок-Тобе, кафе, виды",
     taxiBaseUZS: 14000,
     taxiKmUZS: 4500,
-    cashTip:
-      "В Алматы карта удобна, но для мелких покупок держи 10 000–20 000 KZT.",
+    cashTip: "В Алматы карта удобна, но для мелких покупок держи 10 000–20 000 KZT.",
     buyList: [
-      {
-        title: "Шоколад",
-        normalPriceUZS: "30 000–120 000 UZS",
-        where: "супермаркет / фирменные магазины",
-        tip: "В супермаркете выгоднее, чем в туристических местах.",
-      },
-      {
-        title: "Сувениры с горами",
-        normalPriceUZS: "50 000–250 000 UZS",
-        where: "Кок-Тобе / центр",
-        tip: "Сравни цены до покупки.",
-      },
-      {
-        title: "Чай / сладости",
-        normalPriceUZS: "40 000–180 000 UZS",
-        where: "рынок / ТРЦ",
-        tip: "Покупай в упаковке, если везешь домой.",
-      },
+      { title: "Шоколад", normalPriceUZS: "30 000–120 000 UZS", where: "супермаркет / фирменные магазины", tip: "В супермаркете выгоднее, чем в туристических местах." },
+      { title: "Сувениры с горами", normalPriceUZS: "50 000–250 000 UZS", where: "Кок-Тобе / центр", tip: "Сравни цены до покупки." },
+      { title: "Чай / сладости", normalPriceUZS: "40 000–180 000 UZS", where: "рынок / ТРЦ", tip: "Покупай в упаковке, если везешь домой." },
     ],
   },
   {
@@ -398,24 +216,9 @@ const cities: City[] = [
     taxiKmUZS: 12000,
     cashTip: "Лучше карта. Наличные 50–100 EUR на мелочи и чаевые.",
     buyList: [
-      {
-        title: "Макароны",
-        normalPriceUZS: "120 000–500 000 UZS",
-        where: "кондитерские",
-        tip: "Бери небольшую коробку, если нужно просто попробовать.",
-      },
-      {
-        title: "Парфюм",
-        normalPriceUZS: "500 000–2 000 000 UZS",
-        where: "магазины косметики",
-        tip: "Смотри tax free и акции.",
-      },
-      {
-        title: "Сувениры",
-        normalPriceUZS: "30 000–200 000 UZS",
-        where: "не у главных достопримечательностей",
-        tip: "У Эйфелевой башни часто дороже.",
-      },
+      { title: "Макароны", normalPriceUZS: "120 000–500 000 UZS", where: "кондитерские", tip: "Бери небольшую коробку, если нужно просто попробовать." },
+      { title: "Парфюм", normalPriceUZS: "500 000–2 000 000 UZS", where: "магазины косметики", tip: "Смотри tax free и акции." },
+      { title: "Сувениры", normalPriceUZS: "30 000–200 000 UZS", where: "не у главных достопримечательностей", tip: "У Эйфелевой башни часто дороже." },
     ],
   },
   {
@@ -425,27 +228,11 @@ const cities: City[] = [
     subtitle: "Колизей, Ватикан, фонтаны, паста",
     taxiBaseUZS: 28000,
     taxiKmUZS: 11000,
-    cashTip:
-      "Карта работает почти везде. Наличные 50–100 EUR для кафе и мелочей.",
+    cashTip: "Карта работает почти везде. Наличные 50–100 EUR для кафе и мелочей.",
     buyList: [
-      {
-        title: "Паста / соусы",
-        normalPriceUZS: "60 000–250 000 UZS",
-        where: "супермаркет / гастролавки",
-        tip: "В супермаркете дешевле и честнее.",
-      },
-      {
-        title: "Кофе",
-        normalPriceUZS: "70 000–300 000 UZS",
-        where: "кофейни / магазины",
-        tip: "Смотри локальные бренды.",
-      },
-      {
-        title: "Кожаные изделия",
-        normalPriceUZS: "300 000–2 000 000 UZS",
-        where: "магазины",
-        tip: "Проверяй качество и не покупай с рук.",
-      },
+      { title: "Паста / соусы", normalPriceUZS: "60 000–250 000 UZS", where: "супермаркет / гастролавки", tip: "В супермаркете дешевле и честнее." },
+      { title: "Кофе", normalPriceUZS: "70 000–300 000 UZS", where: "кофейни / магазины", tip: "Смотри локальные бренды." },
+      { title: "Кожаные изделия", normalPriceUZS: "300 000–2 000 000 UZS", where: "магазины", tip: "Проверяй качество и не покупай с рук." },
     ],
   },
   {
@@ -457,24 +244,9 @@ const cities: City[] = [
     taxiKmUZS: 12000,
     cashTip: "В Японии наличные всё еще полезны: держи 10 000–20 000 JPY.",
     buyList: [
-      {
-        title: "Снеки / сладости",
-        normalPriceUZS: "40 000–200 000 UZS",
-        where: "Don Quijote / convenience stores",
-        tip: "Покупай наборами, выгоднее.",
-      },
-      {
-        title: "Косметика",
-        normalPriceUZS: "100 000–700 000 UZS",
-        where: "drugstores",
-        tip: "Смотри tax free.",
-      },
-      {
-        title: "Аниме-сувениры",
-        normalPriceUZS: "80 000–500 000 UZS",
-        where: "Akihabara",
-        tip: "Сравни новые и second-hand магазины.",
-      },
+      { title: "Снеки / сладости", normalPriceUZS: "40 000–200 000 UZS", where: "Don Quijote / convenience stores", tip: "Покупай наборами, выгоднее." },
+      { title: "Косметика", normalPriceUZS: "100 000–700 000 UZS", where: "drugstores", tip: "Смотри tax free." },
+      { title: "Аниме-сувениры", normalPriceUZS: "80 000–500 000 UZS", where: "Akihabara", tip: "Сравни новые и second-hand магазины." },
     ],
   },
 ];
@@ -541,8 +313,7 @@ const fullDayTemplates: Omit<Place, "id" | "cityId" | "lat" | "lng">[] = [
     photoTip: "Сними кофе, улицу у окна и короткий кадр с картой маршрута.",
     cheapTip: "Ищи завтрак-комбо до 11:00.",
     safetyTip: "Не оставляй телефон на краю стола.",
-    driverText:
-      "Пожалуйста, отвезите меня в ближайшую хорошую кофейню в центре.",
+    driverText: "Пожалуйста, отвезите меня в ближайшую хорошую кофейню в центре.",
   },
   {
     title: "Главная площадь / исторический центр",
@@ -556,8 +327,7 @@ const fullDayTemplates: Omit<Place, "id" | "cityId" | "lat" | "lng">[] = [
     crowd: "medium",
     bestTime: "10:15–11:30",
     openNow: true,
-    photoTip:
-      "Не снимай только прямо по центру. Отойди в угол — кадр будет глубже.",
+    photoTip: "Не снимай только прямо по центру. Отойди в угол — кадр будет глубже.",
     cheapTip: "Сначала осмотри бесплатно, сувениры покупай позже.",
     safetyTip: "В туристических местах держи документы отдельно от денег.",
     driverText: "Пожалуйста, отвезите меня в исторический центр города.",
@@ -613,8 +383,7 @@ const fullDayTemplates: Omit<Place, "id" | "cityId" | "lat" | "lng">[] = [
     photoTip: "Снимай ряды, детали товаров, руки мастера, специи или ткань.",
     cheapTip: "Сравни минимум 3 цены. Первая цена часто туристическая.",
     safetyTip: "Не показывай крупные деньги. Держи сумку спереди.",
-    driverText:
-      "Пожалуйста, отвезите меня на главный рынок или сувенирную улицу.",
+    driverText: "Пожалуйста, отвезите меня на главный рынок или сувенирную улицу.",
   },
   {
     title: "Пауза: десерт / чай / кофе",
@@ -646,8 +415,7 @@ const fullDayTemplates: Omit<Place, "id" | "cityId" | "lat" | "lng">[] = [
     crowd: "medium",
     bestTime: "17:30–18:45",
     openNow: true,
-    photoTip:
-      "Лучший кадр — за 30–40 минут до заката. Снимай против света аккуратно.",
+    photoTip: "Лучший кадр — за 30–40 минут до заката. Снимай против света аккуратно.",
     cheapTip: "Не обязательно садиться в дорогое кафе с видом.",
     safetyTip: "Не подходи к краям ради фото.",
     driverText: "Пожалуйста, отвезите меня на ближайшую смотровую площадку.",
@@ -837,8 +605,7 @@ const realPlaces: Place[] = [
     openNow: true,
     deal: "Abra стоит дешево и дает атмосферу старого Дубая",
     photoTip: "Снимай лодки на закате и отражения на воде.",
-    cheapTip:
-      "Еда и сувениры в старом районе часто дешевле, чем у небоскребов.",
+    cheapTip: "Еда и сувениры в старом районе часто дешевле, чем у небоскребов.",
     safetyTip: "Торгуйся на рынках, цены могут завышать.",
     driverText: "Please take me to Dubai Creek.",
   },
@@ -892,8 +659,7 @@ function parseBudget(value: string, country: Country) {
 }
 
 function distanceKm(a: Place, b: Place) {
-  const raw =
-    Math.sqrt(Math.pow(a.lat - b.lat, 2) + Math.pow(a.lng - b.lng, 2)) * 110;
+  const raw = Math.sqrt(Math.pow(a.lat - b.lat, 2) + Math.pow(a.lng - b.lng, 2)) * 110;
   return Math.max(1, Math.round(raw));
 }
 
@@ -914,12 +680,7 @@ function createFullDayPlaces(city: City, customCityName: string) {
 
   const merged = [...real, ...fill];
   return merged.filter((place, index, array) => {
-    return (
-      array.findIndex(
-        (item) =>
-          item.title === place.title && item.category === place.category,
-      ) === index
-    );
+    return array.findIndex((item) => item.title === place.title && item.category === place.category) === index;
   });
 }
 
@@ -941,25 +702,12 @@ function buildFullDayRoute(city: City, places: Place[], mode: TravelMode) {
     const bCheap = mode === "cheap" ? -(b.entryUZS + b.spendUZS) / 100000 : 0;
     const aCalm = mode === "tired" && a.crowd === "low" ? 1.5 : 0;
     const bCalm = mode === "tired" && b.crowd === "low" ? 1.5 : 0;
-    return (
-      bCat + b.rating + bCheap + bCalm - (aCat + a.rating + aCheap + aCalm)
-    );
+    return bCat + b.rating + bCheap + bCalm - (aCat + a.rating + aCheap + aCalm);
   });
 
-  const times =
-    mode === "nightSafe"
-      ? ["18:30", "19:30", "20:30", "21:30"]
-      : [
-          "09:00",
-          "10:15",
-          "11:45",
-          "13:15",
-          "14:45",
-          "16:15",
-          "17:45",
-          "19:15",
-          "21:15",
-        ];
+  const times = mode === "nightSafe"
+    ? ["18:30", "19:30", "20:30", "21:30"]
+    : ["09:00", "10:15", "11:45", "13:15", "14:45", "16:15", "17:45", "19:15", "21:15"];
 
   const result: RouteStep[] = [];
   const limit = mode === "tired" ? 6 : mode === "nightSafe" ? 4 : 9;
@@ -976,9 +724,7 @@ function buildFullDayRoute(city: City, places: Place[], mode: TravelMode) {
       time: times[result.length] ?? "12:00",
       distanceKm: km,
       taxiUZS,
-      transportText: prev
-        ? `Такси ${km} км · примерно ${Math.max(8, km * 4)} мин`
-        : "Старт из отеля / текущей точки",
+      transportText: prev ? `Такси ${km} км · примерно ${Math.max(8, km * 4)} мин` : "Старт из отеля / текущей точки",
     });
   });
 
@@ -989,12 +735,8 @@ function createNotices(route: RouteStep[], country: Country, city: City) {
   const notices: SmartNotice[] = [];
   const deal = route.find((item) => item.deal);
   const crowded = route.find((item) => item.crowd === "high");
-  const photo = route.find(
-    (item) => item.category === "photo" || item.category === "sight",
-  );
-  const food = route.find(
-    (item) => item.category === "food" || item.category === "breakfast",
-  );
+  const photo = route.find((item) => item.category === "photo" || item.category === "sight");
+  const food = route.find((item) => item.category === "food" || item.category === "breakfast");
 
   if (deal) {
     notices.push({
@@ -1062,10 +804,7 @@ function openMap(place: Place) {
     default: `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`,
   });
 
-  Linking.openURL(
-    url ??
-      `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`,
-  ).catch(() => {
+  Linking.openURL(url ?? `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`).catch(() => {
     Alert.alert("Карта", `${place.title}, ${place.address}`);
   });
 }
@@ -1085,62 +824,21 @@ function callNumber(number: string) {
 function priceAdvice(inputPriceUZS: number, referenceUZS: number) {
   if (!inputPriceUZS) return "Введите цену товара, чтобы проверить.";
   const ratio = inputPriceUZS / Math.max(referenceUZS, 1);
-  if (ratio >= 2.2)
-    return "Очень дорого. Похоже на туристическую цену. Торгуйся или уходи.";
+  if (ratio >= 2.2) return "Очень дорого. Похоже на туристическую цену. Торгуйся или уходи.";
   if (ratio >= 1.35) return "Дороговато. Можно просить скидку 20–30%.";
   if (ratio >= 0.75) return "Цена выглядит нормально.";
   return "Цена хорошая. Проверь качество и упаковку.";
 }
 
 const checklistItems: CheckItem[] = [
-  {
-    id: "passport",
-    title: "Паспорт / ID",
-    subtitle: "Фото в телефоне + оригинал в безопасном месте",
-    icon: "id-card",
-  },
-  {
-    id: "cash",
-    title: "Наличные",
-    subtitle: "Для рынка, воды, мелких покупок и такси",
-    icon: "cash",
-  },
-  {
-    id: "card",
-    title: "Карта",
-    subtitle: "Проверь лимиты и работу за границей",
-    icon: "card",
-  },
-  {
-    id: "power",
-    title: "Powerbank",
-    subtitle: "Для карты, фото, связи и переводчика",
-    icon: "battery-charging",
-  },
-  {
-    id: "water",
-    title: "Вода",
-    subtitle: "Особенно в жарких городах",
-    icon: "water",
-  },
-  {
-    id: "hotel",
-    title: "Адрес отеля",
-    subtitle: "Сохрани офлайн и покажи водителю",
-    icon: "home",
-  },
-  {
-    id: "internet",
-    title: "Интернет / SIM",
-    subtitle: "Маршрут и такси должны работать весь день",
-    icon: "wifi",
-  },
-  {
-    id: "medicine",
-    title: "Лекарства",
-    subtitle: "Мини-аптечка, если есть личные препараты",
-    icon: "medkit",
-  },
+  { id: "passport", title: "Паспорт / ID", subtitle: "Фото в телефоне + оригинал в безопасном месте", icon: "id-card" },
+  { id: "cash", title: "Наличные", subtitle: "Для рынка, воды, мелких покупок и такси", icon: "cash" },
+  { id: "card", title: "Карта", subtitle: "Проверь лимиты и работу за границей", icon: "card" },
+  { id: "power", title: "Powerbank", subtitle: "Для карты, фото, связи и переводчика", icon: "battery-charging" },
+  { id: "water", title: "Вода", subtitle: "Особенно в жарких городах", icon: "water" },
+  { id: "hotel", title: "Адрес отеля", subtitle: "Сохрани офлайн и покажи водителю", icon: "home" },
+  { id: "internet", title: "Интернет / SIM", subtitle: "Маршрут и такси должны работать весь день", icon: "wifi" },
+  { id: "medicine", title: "Лекарства", subtitle: "Мини-аптечка, если есть личные препараты", icon: "medkit" },
 ];
 
 export default function App() {
@@ -1157,14 +855,8 @@ export default function App() {
   const city = getCity(cityId);
   const cityName = customCity.trim() || city.name;
   const cityList = getCities(countryId);
-  const places = useMemo(
-    () => createFullDayPlaces(city, cityName),
-    [city.id, cityName],
-  );
-  const route = useMemo(
-    () => buildFullDayRoute(city, places, mode),
-    [city, places, mode],
-  );
+  const places = useMemo(() => createFullDayPlaces(city, cityName), [city.id, cityName]);
+  const route = useMemo(() => buildFullDayRoute(city, places, mode), [city, places, mode]);
   const budgetUZS = parseBudget(budgetInput, country);
 
   const totals = useMemo(() => {
@@ -1175,17 +867,10 @@ export default function App() {
   }, [route]);
 
   const remaining = budgetUZS - totals.total;
-  const notices = useMemo(
-    () => createNotices(route, country, city),
-    [route, country, city],
-  );
+  const notices = useMemo(() => createNotices(route, country, city), [route, country, city]);
   const nextPoint = route[1] ?? route[0];
-  const cheapPlaces = [...places]
-    .sort((a, b) => a.entryUZS + a.spendUZS - (b.entryUZS + b.spendUZS))
-    .slice(0, 4);
-  const photoPlaces = route.filter((item) =>
-    ["sight", "photo", "nature", "night"].includes(item.category),
-  );
+  const cheapPlaces = [...places].sort((a, b) => a.entryUZS + a.spendUZS - (b.entryUZS + b.spendUZS)).slice(0, 4);
+  const photoPlaces = route.filter((item) => ["sight", "photo", "nature", "night"].includes(item.category));
   const referencePrice = cheapPlaces[0]?.spendUZS || 100000;
   const priceUZS = parseBudget(priceInput, country);
   const checklistDone = Object.values(checked).filter(Boolean).length;
@@ -1201,40 +886,18 @@ export default function App() {
 
   const applyQuickMode = (nextMode: TravelMode) => {
     setMode(nextMode);
-    if (nextMode === "tired")
-      Alert.alert(
-        "Маршрут упрощен",
-        "Я убрал часть тяжелых точек и оставил больше спокойных мест.",
-      );
-    if (nextMode === "eat")
-      Alert.alert("Хочу поесть", "Я сделал маршрут с акцентом на еду и паузы.");
-    if (nextMode === "cheap")
-      Alert.alert(
-        "Сделал дешевле",
-        "Я снизил платные точки и добавил больше бесплатных прогулок.",
-      );
-    if (nextMode === "beautiful")
-      Alert.alert(
-        "Сделал красиво",
-        "Я добавил больше фото-точек и красивых мест.",
-      );
-    if (nextMode === "nightSafe")
-      Alert.alert(
-        "Безопасный вечер",
-        "Я оставил короткий вечерний маршрут и рекомендую такси.",
-      );
+    if (nextMode === "tired") Alert.alert("Маршрут упрощен", "Я убрал часть тяжелых точек и оставил больше спокойных мест.");
+    if (nextMode === "eat") Alert.alert("Хочу поесть", "Я сделал маршрут с акцентом на еду и паузы.");
+    if (nextMode === "cheap") Alert.alert("Сделал дешевле", "Я снизил платные точки и добавил больше бесплатных прогулок.");
+    if (nextMode === "beautiful") Alert.alert("Сделал красиво", "Я добавил больше фото-точек и красивых мест.");
+    if (nextMode === "nightSafe") Alert.alert("Безопасный вечер", "Я оставил короткий вечерний маршрут и рекомендую такси.");
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="light" />
       <View style={styles.app}>
-        <Header
-          cityName={cityName}
-          country={country}
-          total={totals.total}
-          budget={budgetUZS}
-        />
+        <Header cityName={cityName} country={country} total={totals.total} budget={budgetUZS} />
 
         {tab === "home" && (
           <HomeScreen
@@ -1276,22 +939,8 @@ export default function App() {
           />
         )}
 
-        {tab === "route" && (
-          <RouteScreen
-            country={country}
-            route={route}
-            totals={totals}
-            budgetUZS={budgetUZS}
-          />
-        )}
-        {tab === "places" && (
-          <PlacesScreen
-            country={country}
-            places={places}
-            cheapPlaces={cheapPlaces}
-            photoPlaces={photoPlaces}
-          />
-        )}
+        {tab === "route" && <RouteScreen country={country} route={route} totals={totals} budgetUZS={budgetUZS} />}
+        {tab === "places" && <PlacesScreen country={country} places={places} cheapPlaces={cheapPlaces} photoPlaces={photoPlaces} />}
         {tab === "tools" && (
           <ToolsScreen
             country={country}
@@ -1304,13 +953,7 @@ export default function App() {
           />
         )}
         {tab === "checklist" && (
-          <ChecklistScreen
-            checked={checked}
-            setChecked={setChecked}
-            checklistDone={checklistDone}
-            country={country}
-            city={city}
-          />
+          <ChecklistScreen checked={checked} setChecked={setChecked} checklistDone={checklistDone} country={country} city={city} />
         )}
         {tab === "sos" && <SosScreen country={country} nextPoint={nextPoint} />}
 
@@ -1320,17 +963,7 @@ export default function App() {
   );
 }
 
-function Header({
-  cityName,
-  country,
-  total,
-  budget,
-}: {
-  cityName: string;
-  country: Country;
-  total: number;
-  budget: number;
-}) {
+function Header({ cityName, country, total, budget }: { cityName: string; country: Country; total: number; budget: number }) {
   const ok = total <= budget;
   return (
     <View style={styles.header}>
@@ -1340,9 +973,7 @@ function Header({
       </View>
       <View style={styles.headerRight}>
         <View style={styles.pill}>
-          <Text style={styles.pillText}>
-            {country.emoji} {cityName}
-          </Text>
+          <Text style={styles.pillText}>{country.emoji} {cityName}</Text>
         </View>
         <View style={[styles.pill, ok ? styles.goodPill : styles.badPill]}>
           <Text style={styles.pillText}>{ok ? "OK" : "OVER"}</Text>
@@ -1371,11 +1002,7 @@ function HomeScreen(props: {
   setTab: (tab: Tab) => void;
 }) {
   return (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.contentPad}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={styles.content} contentContainerStyle={styles.contentPad} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}>
         <View style={styles.heroSun} />
         <View style={styles.heroBadge}>
@@ -1384,46 +1011,25 @@ function HomeScreen(props: {
         </View>
         <Text style={styles.heroTitle}>Приложение ведет туриста весь день</Text>
         <Text style={styles.heroText}>
-          Маршрут, такси, бюджет, фото-гид, проверка цен, что купить, чек-лист и
-          кнопки “я устал / хочу поесть / сделай дешевле”.
+          Маршрут, такси, бюджет, фото-гид, проверка цен, что купить, чек-лист и кнопки “я устал / хочу поесть / сделай дешевле”.
         </Text>
 
-        <Pressable
-          style={styles.heroButton}
-          onPress={() => props.setTab("live")}
-        >
+        <Pressable style={styles.heroButton} onPress={() => props.setTab("live")}>
           <Text style={styles.heroButtonText}>Запустить живой день</Text>
           <Ionicons name="arrow-forward" size={20} color={colors.dark} />
         </Pressable>
       </View>
 
       <Section title="Умные уведомления">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.row}
-        >
-          {props.notices.map((notice) => (
-            <NoticeCard key={notice.id} notice={notice} />
-          ))}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+          {props.notices.map((notice) => <NoticeCard key={notice.id} notice={notice} />)}
         </ScrollView>
       </Section>
 
       <Section title="Страна">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.row}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {countries.map((country) => (
-            <Pressable
-              key={country.id}
-              onPress={() => props.changeCountry(country.id)}
-              style={[
-                styles.countryCard,
-                props.countryId === country.id && styles.activeCard,
-              ]}
-            >
+            <Pressable key={country.id} onPress={() => props.changeCountry(country.id)} style={[styles.countryCard, props.countryId === country.id && styles.activeCard]}>
               <Text style={styles.countryEmoji}>{country.emoji}</Text>
               <Text style={styles.cardTitle}>{country.name}</Text>
               <Text style={styles.cardMuted}>{country.currency}</Text>
@@ -1433,22 +1039,9 @@ function HomeScreen(props: {
       </Section>
 
       <Section title="Город">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.row}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {props.cityList.map((city) => (
-            <Pressable
-              key={city.id}
-              onPress={() => props.setCityId(city.id)}
-              style={[
-                styles.cityCard,
-                props.cityId === city.id &&
-                  !props.customCity &&
-                  styles.activeCard,
-              ]}
-            >
+            <Pressable key={city.id} onPress={() => props.setCityId(city.id)} style={[styles.cityCard, props.cityId === city.id && !props.customCity && styles.activeCard]}>
               <Text style={styles.cardTitle}>{city.name}</Text>
               <Text style={styles.cardMuted}>{city.subtitle}</Text>
             </Pressable>
@@ -1482,18 +1075,8 @@ function HomeScreen(props: {
 
         <View style={styles.quickRow}>
           {[250000, 500000, 1000000, 2000000].map((value) => (
-            <Pressable
-              key={value}
-              onPress={() =>
-                props.setBudgetInput(
-                  String(convertFromUZS(value, props.country)),
-                )
-              }
-              style={styles.quickChip}
-            >
-              <Text style={styles.quickText}>
-                {money(value, props.country)}
-              </Text>
+            <Pressable key={value} onPress={() => props.setBudgetInput(String(convertFromUZS(value, props.country)))} style={styles.quickChip}>
+              <Text style={styles.quickText}>{money(value, props.country)}</Text>
             </Pressable>
           ))}
         </View>
@@ -1501,26 +1084,12 @@ function HomeScreen(props: {
 
       <View style={styles.summaryCard}>
         <Text style={styles.kicker}>ПЛАН НА ВЕСЬ ДЕНЬ</Text>
-        <Text style={styles.summaryTitle}>
-          {props.route.length} точек ·{" "}
-          {money(props.totals.total, props.country)}
-        </Text>
-        <Text style={styles.cardMuted}>
-          {props.route.map((item) => item.title).join(" → ")}
-        </Text>
+        <Text style={styles.summaryTitle}>{props.route.length} точек · {money(props.totals.total, props.country)}</Text>
+        <Text style={styles.cardMuted}>{props.route.map((item) => item.title).join(" → ")}</Text>
         <View style={styles.statGrid}>
-          <MiniStat
-            label="Бюджет"
-            value={money(props.budgetUZS, props.country)}
-          />
-          <MiniStat
-            label="Итого"
-            value={money(props.totals.total, props.country)}
-          />
-          <MiniStat
-            label="Остаток"
-            value={money(props.remaining, props.country)}
-          />
+          <MiniStat label="Бюджет" value={money(props.budgetUZS, props.country)} />
+          <MiniStat label="Итого" value={money(props.totals.total, props.country)} />
+          <MiniStat label="Остаток" value={money(props.remaining, props.country)} />
         </View>
       </View>
     </ScrollView>
@@ -1541,28 +1110,18 @@ function LiveDayScreen(props: {
   const next = props.route[1];
 
   return (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.contentPad}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={styles.content} contentContainerStyle={styles.contentPad} showsVerticalScrollIndicator={false}>
       <View style={styles.liveHero}>
         <Text style={styles.kicker}>ЖИВОЙ ДЕНЬ</Text>
         <Text style={styles.liveTitle}>Сейчас: {current?.title}</Text>
         <Text style={styles.cardMuted}>{current?.subtitle}</Text>
 
         <View style={styles.actionRow}>
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={() => current && openMap(current)}
-          >
+          <Pressable style={styles.secondaryButton} onPress={() => current && openMap(current)}>
             <Ionicons name="map" size={17} color={colors.dark} />
             <Text style={styles.secondaryButtonText}>Карта</Text>
           </Pressable>
-          <Pressable
-            style={styles.darkButton}
-            onPress={() => next && openTaxi(current, next)}
-          >
+          <Pressable style={styles.darkButton} onPress={() => next && openTaxi(current, next)}>
             <Ionicons name="car" size={17} color={colors.text} />
             <Text style={styles.darkButtonText}>Такси дальше</Text>
           </Pressable>
@@ -1571,148 +1130,72 @@ function LiveDayScreen(props: {
 
       <Section title="Быстрые команды">
         <View style={styles.commandGrid}>
-          <CommandButton
-            icon="battery-dead"
-            title="Я устал"
-            subtitle="Упростить"
-            onPress={() => props.applyQuickMode("tired")}
-          />
-          <CommandButton
-            icon="restaurant"
-            title="Хочу поесть"
-            subtitle="Еда ближе"
-            onPress={() => props.applyQuickMode("eat")}
-          />
-          <CommandButton
-            icon="cash"
-            title="Сделай дешевле"
-            subtitle="Экономия"
-            onPress={() => props.applyQuickMode("cheap")}
-          />
-          <CommandButton
-            icon="aperture"
-            title="Сделай красиво"
-            subtitle="Фото-точки"
-            onPress={() => props.applyQuickMode("beautiful")}
-          />
-          <CommandButton
-            icon="moon"
-            title="Ночной safe"
-            subtitle="Только такси"
-            onPress={() => props.applyQuickMode("nightSafe")}
-          />
-          <CommandButton
-            icon="refresh"
-            title="Обычный день"
-            subtitle="Вернуть"
-            onPress={() => props.applyQuickMode("normal")}
-          />
+          <CommandButton icon="battery-dead" title="Я устал" subtitle="Упростить" onPress={() => props.applyQuickMode("tired")} />
+          <CommandButton icon="restaurant" title="Хочу поесть" subtitle="Еда ближе" onPress={() => props.applyQuickMode("eat")} />
+          <CommandButton icon="cash" title="Сделай дешевле" subtitle="Экономия" onPress={() => props.applyQuickMode("cheap")} />
+          <CommandButton icon="aperture" title="Сделай красиво" subtitle="Фото-точки" onPress={() => props.applyQuickMode("beautiful")} />
+          <CommandButton icon="moon" title="Ночной safe" subtitle="Только такси" onPress={() => props.applyQuickMode("nightSafe")} />
+          <CommandButton icon="refresh" title="Обычный день" subtitle="Вернуть" onPress={() => props.applyQuickMode("normal")} />
         </View>
       </Section>
 
       <Section title="Рекомендации">
-        {props.notices.map((notice) => (
-          <NoticeWide key={notice.id} notice={notice} />
-        ))}
+        {props.notices.map((notice) => <NoticeWide key={notice.id} notice={notice} />)}
       </Section>
 
       <View style={styles.summaryCard}>
         <Text style={styles.kicker}>БЮДЖЕТ</Text>
-        <Text style={styles.summaryTitle}>
-          {money(props.totals.total, props.country)} из{" "}
-          {money(props.budgetUZS, props.country)}
-        </Text>
-        <Text style={styles.cardMuted}>
-          Остаток: {money(props.remaining, props.country)}
-        </Text>
+        <Text style={styles.summaryTitle}>{money(props.totals.total, props.country)} из {money(props.budgetUZS, props.country)}</Text>
+        <Text style={styles.cardMuted}>Остаток: {money(props.remaining, props.country)}</Text>
       </View>
 
       <Section title="Расписание дня">
         {props.route.map((step, index) => {
           const previous = index > 0 ? props.route[index - 1] : null;
-          return (
-            <RouteStepCard
-              key={step.id}
-              step={step}
-              previous={previous}
-              country={props.country}
-            />
-          );
+          return <RouteStepCard key={step.id} step={step} previous={previous} country={props.country} />;
         })}
       </Section>
     </ScrollView>
   );
 }
 
-function RouteScreen({
-  country,
-  route,
-  totals,
-  budgetUZS,
-}: {
+function RouteScreen({ country, route, totals, budgetUZS }: {
   country: Country;
   route: RouteStep[];
   totals: { entry: number; spend: number; taxi: number; total: number };
   budgetUZS: number;
 }) {
   return (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.contentPad}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={styles.content} contentContainerStyle={styles.contentPad} showsVerticalScrollIndicator={false}>
       <View style={styles.summaryCard}>
         <Text style={styles.kicker}>ПОЛНЫЙ МАРШРУТ</Text>
-        <Text style={styles.summaryTitle}>
-          {route.length} точек с 09:00 до 22:00
-        </Text>
+        <Text style={styles.summaryTitle}>{route.length} точек с 09:00 до 22:00</Text>
         <View style={styles.statGrid}>
           <MiniStat label="Билеты" value={money(totals.entry, country)} />
           <MiniStat label="Еда/покупки" value={money(totals.spend, country)} />
           <MiniStat label="Такси" value={money(totals.taxi, country)} />
         </View>
-        <Text style={styles.cardMuted}>
-          Итого: {money(totals.total, country)} / бюджет:{" "}
-          {money(budgetUZS, country)}
-        </Text>
+        <Text style={styles.cardMuted}>Итого: {money(totals.total, country)} / бюджет: {money(budgetUZS, country)}</Text>
       </View>
 
       {route.map((step, index) => {
         const previous = index > 0 ? route[index - 1] : null;
-        return (
-          <RouteStepCard
-            key={step.id}
-            step={step}
-            previous={previous}
-            country={country}
-          />
-        );
+        return <RouteStepCard key={step.id} step={step} previous={previous} country={country} />;
       })}
     </ScrollView>
   );
 }
 
-function PlacesScreen({
-  country,
-  places,
-  cheapPlaces,
-  photoPlaces,
-}: {
+function PlacesScreen({ country, places, cheapPlaces, photoPlaces }: {
   country: Country;
   places: Place[];
   cheapPlaces: Place[];
   photoPlaces: RouteStep[];
 }) {
   return (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.contentPad}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={styles.content} contentContainerStyle={styles.contentPad} showsVerticalScrollIndicator={false}>
       <Section title="Где дешевле">
-        {cheapPlaces.map((place) => (
-          <CompactPlace key={place.id} place={place} country={country} />
-        ))}
+        {cheapPlaces.map((place) => <CompactPlace key={place.id} place={place} country={country} />)}
       </Section>
 
       <Section title="Фото-гид">
@@ -1725,9 +1208,7 @@ function PlacesScreen({
       </Section>
 
       <Section title="Все места">
-        {places.map((place) => (
-          <PlaceCard key={place.id} place={place} country={country} />
-        ))}
+        {places.map((place) => <PlaceCard key={place.id} place={place} country={country} />)}
       </Section>
     </ScrollView>
   );
@@ -1745,17 +1226,11 @@ function ToolsScreen(props: {
   const driverPoint = props.route[0];
 
   return (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.contentPad}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={styles.content} contentContainerStyle={styles.contentPad} showsVerticalScrollIndicator={false}>
       <Section title="Проверка туристической цены">
         <View style={styles.toolCard}>
           <Text style={styles.cardTitle}>Проверь, не завышена ли цена</Text>
-          <Text style={styles.cardMuted}>
-            Введи цену товара, которую тебе назвали.
-          </Text>
+          <Text style={styles.cardMuted}>Введи цену товара, которую тебе назвали.</Text>
           <View style={styles.inputBox}>
             <Ionicons name="cash" size={18} color={colors.muted} />
             <TextInput
@@ -1775,9 +1250,7 @@ function ToolsScreen(props: {
         {props.city.buyList.map((item) => (
           <View key={item.title} style={styles.buyCard}>
             <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardMuted}>
-              Нормальная цена: {item.normalPriceUZS}
-            </Text>
+            <Text style={styles.cardMuted}>Нормальная цена: {item.normalPriceUZS}</Text>
             <Text style={styles.cardMuted}>Где: {item.where}</Text>
             <Text style={styles.tip}>Совет: {item.tip}</Text>
           </View>
@@ -1798,15 +1271,9 @@ function ToolsScreen(props: {
 
       <Section title="Показать водителю">
         <View style={styles.driverCard}>
-          <Text style={styles.driverTitle}>
-            {driverPoint?.driverText ??
-              "Пожалуйста, отвезите меня по этому адресу."}
-          </Text>
+          <Text style={styles.driverTitle}>{driverPoint?.driverText ?? "Пожалуйста, отвезите меня по этому адресу."}</Text>
           <Text style={styles.cardMuted}>{driverPoint?.address}</Text>
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={() => driverPoint && openTaxi(null, driverPoint)}
-          >
+          <Pressable style={styles.secondaryButton} onPress={() => driverPoint && openTaxi(null, driverPoint)}>
             <Ionicons name="car" size={17} color={colors.dark} />
             <Text style={styles.secondaryButtonText}>Открыть такси</Text>
           </Pressable>
@@ -1816,13 +1283,7 @@ function ToolsScreen(props: {
   );
 }
 
-function ChecklistScreen({
-  checked,
-  setChecked,
-  checklistDone,
-  country,
-  city,
-}: {
+function ChecklistScreen({ checked, setChecked, checklistDone, country, city }: {
   checked: Record<string, boolean>;
   setChecked: (value: Record<string, boolean>) => void;
   checklistDone: number;
@@ -1830,33 +1291,19 @@ function ChecklistScreen({
   city: City;
 }) {
   return (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.contentPad}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={styles.content} contentContainerStyle={styles.contentPad} showsVerticalScrollIndicator={false}>
       <View style={styles.summaryCard}>
         <Text style={styles.kicker}>ЧЕК-ЛИСТ ПЕРЕД ВЫХОДОМ</Text>
-        <Text style={styles.summaryTitle}>
-          {checklistDone} из {checklistItems.length} готово
-        </Text>
+        <Text style={styles.summaryTitle}>{checklistDone} из {checklistItems.length} готово</Text>
         <Text style={styles.cardMuted}>{city.cashTip}</Text>
       </View>
 
       {checklistItems.map((item) => {
         const done = Boolean(checked[item.id]);
         return (
-          <Pressable
-            key={item.id}
-            style={[styles.checkRow, done && styles.checkRowDone]}
-            onPress={() => setChecked({ ...checked, [item.id]: !done })}
-          >
+          <Pressable key={item.id} style={[styles.checkRow, done && styles.checkRowDone]} onPress={() => setChecked({ ...checked, [item.id]: !done })}>
             <View style={[styles.checkIcon, done && styles.checkIconDone]}>
-              <Ionicons
-                name={done ? "checkmark" : item.icon}
-                size={20}
-                color={done ? colors.dark : colors.accent}
-              />
+              <Ionicons name={done ? "checkmark" : item.icon} size={20} color={done ? colors.dark : colors.accent} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>{item.title}</Text>
@@ -1868,76 +1315,36 @@ function ChecklistScreen({
 
       <View style={styles.summaryCard}>
         <Text style={styles.kicker}>ОФЛАЙН-КАРТОЧКА</Text>
-        <Text style={styles.cardTitle}>
-          {country.emoji} {country.name}
-        </Text>
-        <Text style={styles.cardMuted}>
-          Полиция: {country.emergency.police} · Скорая:{" "}
-          {country.emergency.ambulance} · Туристическая помощь:{" "}
-          {country.emergency.tourist}
-        </Text>
+        <Text style={styles.cardTitle}>{country.emoji} {country.name}</Text>
+        <Text style={styles.cardMuted}>Полиция: {country.emergency.police} · Скорая: {country.emergency.ambulance} · Туристическая помощь: {country.emergency.tourist}</Text>
       </View>
     </ScrollView>
   );
 }
 
-function SosScreen({
-  country,
-  nextPoint,
-}: {
-  country: Country;
-  nextPoint?: RouteStep;
-}) {
+function SosScreen({ country, nextPoint }: { country: Country; nextPoint?: RouteStep }) {
   return (
-    <ScrollView
-      style={styles.content}
-      contentContainerStyle={styles.contentPad}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={styles.content} contentContainerStyle={styles.contentPad} showsVerticalScrollIndicator={false}>
       <View style={styles.sosHero}>
         <Ionicons name="shield-checkmark" size={42} color="#FB7185" />
         <Text style={styles.sosTitle}>Я потерялся / нужна помощь</Text>
         <Text style={styles.cardMuted}>Быстрые действия для туриста.</Text>
       </View>
 
-      <SosButton
-        title="Полиция"
-        number={country.emergency.police}
-        icon="shield"
-      />
-      <SosButton
-        title="Скорая помощь"
-        number={country.emergency.ambulance}
-        icon="medkit"
-      />
-      <SosButton
-        title="Пожарная служба"
-        number={country.emergency.fire}
-        icon="flame"
-      />
-      <SosButton
-        title="Туристическая помощь"
-        number={country.emergency.tourist}
-        icon="help-circle"
-      />
+      <SosButton title="Полиция" number={country.emergency.police} icon="shield" />
+      <SosButton title="Скорая помощь" number={country.emergency.ambulance} icon="medkit" />
+      <SosButton title="Пожарная служба" number={country.emergency.fire} icon="flame" />
+      <SosButton title="Туристическая помощь" number={country.emergency.tourist} icon="help-circle" />
 
       <Section title="Фраза местному человеку">
         <View style={styles.driverCard}>
-          <Text style={styles.driverTitle}>
-            Здравствуйте. Я турист. Помогите, пожалуйста, мне нужно добраться до
-            безопасного места.
-          </Text>
+          <Text style={styles.driverTitle}>Здравствуйте. Я турист. Помогите, пожалуйста, мне нужно добраться до безопасного места.</Text>
         </View>
       </Section>
 
       {nextPoint ? (
-        <Pressable
-          style={styles.heroButton}
-          onPress={() => openTaxi(null, nextPoint)}
-        >
-          <Text style={styles.heroButtonText}>
-            Вызвать такси до следующей точки
-          </Text>
+        <Pressable style={styles.heroButton} onPress={() => openTaxi(null, nextPoint)}>
+          <Text style={styles.heroButtonText}>Вызвать такси до следующей точки</Text>
           <Ionicons name="car" size={20} color={colors.dark} />
         </Pressable>
       ) : null}
@@ -1945,15 +1352,7 @@ function SosScreen({
   );
 }
 
-function RouteStepCard({
-  step,
-  previous,
-  country,
-}: {
-  step: RouteStep;
-  previous: RouteStep | null;
-  country: Country;
-}) {
+function RouteStepCard({ step, previous, country }: { step: RouteStep; previous: RouteStep | null; country: Country }) {
   return (
     <View style={styles.routeCard}>
       <View style={styles.stepCircle}>
@@ -1962,28 +1361,18 @@ function RouteStepCard({
       <View style={{ flex: 1 }}>
         <View style={styles.cardTop}>
           <Text style={styles.timeText}>{step.time}</Text>
-          <Text style={[styles.crowdText, { color: crowdColors[step.crowd] }]}>
-            {crowdLabels[step.crowd]}
-          </Text>
+          <Text style={[styles.crowdText, { color: crowdColors[step.crowd] }]}>{crowdLabels[step.crowd]}</Text>
         </View>
         <Text style={styles.placeTitle}>{step.title}</Text>
         <Text style={styles.cardMuted}>{step.subtitle}</Text>
         {step.deal ? <Text style={styles.dealText}>🔥 {step.deal}</Text> : null}
         <Text style={styles.info}>📍 {step.address}</Text>
-        <Text style={styles.info}>
-          🎫 Вход {money(step.entryUZS, country)} · траты{" "}
-          {money(step.spendUZS, country)}
-        </Text>
-        <Text style={styles.info}>
-          🚕 {step.transportText} · {money(step.taxiUZS, country)}
-        </Text>
+        <Text style={styles.info}>🎫 Вход {money(step.entryUZS, country)} · траты {money(step.spendUZS, country)}</Text>
+        <Text style={styles.info}>🚕 {step.transportText} · {money(step.taxiUZS, country)}</Text>
         <Text style={styles.tip}>📸 {step.photoTip}</Text>
 
         <View style={styles.actionRow}>
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={() => openTaxi(previous, step)}
-          >
+          <Pressable style={styles.secondaryButton} onPress={() => openTaxi(previous, step)}>
             <Ionicons name="car" size={17} color={colors.dark} />
             <Text style={styles.secondaryButtonText}>Вызвать такси</Text>
           </Pressable>
@@ -2002,16 +1391,11 @@ function PlaceCard({ place, country }: { place: Place; country: Country }) {
     <View style={styles.placeCard}>
       <View style={styles.cardTop}>
         <Text style={styles.badge}>{categoryLabels[place.category]}</Text>
-        <Text style={[styles.crowdText, { color: crowdColors[place.crowd] }]}>
-          {crowdLabels[place.crowd]}
-        </Text>
+        <Text style={[styles.crowdText, { color: crowdColors[place.crowd] }]}>{crowdLabels[place.crowd]}</Text>
       </View>
       <Text style={styles.placeTitle}>{place.title}</Text>
       <Text style={styles.cardMuted}>{place.subtitle}</Text>
-      <Text style={styles.info}>
-        Цена: {money(place.entryUZS + place.spendUZS, country)} ·{" "}
-        {place.bestTime}
-      </Text>
+      <Text style={styles.info}>Цена: {money(place.entryUZS + place.spendUZS, country)} · {place.bestTime}</Text>
       <Text style={styles.tip}>{place.cheapTip}</Text>
     </View>
   );
@@ -2022,14 +1406,9 @@ function CompactPlace({ place, country }: { place: Place; country: Country }) {
     <View style={styles.compactCard}>
       <View style={{ flex: 1 }}>
         <Text style={styles.cardTitle}>{place.title}</Text>
-        <Text style={styles.cardMuted}>
-          {categoryLabels[place.category]} ·{" "}
-          {money(place.entryUZS + place.spendUZS, country)}
-        </Text>
+        <Text style={styles.cardMuted}>{categoryLabels[place.category]} · {money(place.entryUZS + place.spendUZS, country)}</Text>
       </View>
-      <Text style={[styles.crowdText, { color: crowdColors[place.crowd] }]}>
-        {crowdLabels[place.crowd]}
-      </Text>
+      <Text style={[styles.crowdText, { color: crowdColors[place.crowd] }]}>{crowdLabels[place.crowd]}</Text>
     </View>
   );
 }
@@ -2058,12 +1437,7 @@ function NoticeWide({ notice }: { notice: SmartNotice }) {
   );
 }
 
-function CommandButton({
-  icon,
-  title,
-  subtitle,
-  onPress,
-}: {
+function CommandButton({ icon, title, subtitle, onPress }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: string;
@@ -2078,15 +1452,7 @@ function CommandButton({
   );
 }
 
-function SosButton({
-  title,
-  number,
-  icon,
-}: {
-  title: string;
-  number: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}) {
+function SosButton({ title, number, icon }: { title: string; number: string; icon: keyof typeof Ionicons.glyphMap }) {
   return (
     <Pressable style={styles.sosButton} onPress={() => callNumber(number)}>
       <Ionicons name={icon} size={24} color="#FFF" />
@@ -2108,13 +1474,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -2123,18 +1483,8 @@ function Section({
   );
 }
 
-function BottomTabs({
-  active,
-  setActive,
-}: {
-  active: Tab;
-  setActive: (tab: Tab) => void;
-}) {
-  const tabs: {
-    id: Tab;
-    title: string;
-    icon: keyof typeof Ionicons.glyphMap;
-  }[] = [
+function BottomTabs({ active, setActive }: { active: Tab; setActive: (tab: Tab) => void }) {
+  const tabs: { id: Tab; title: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { id: "home", title: "Главная", icon: "sparkles" },
     { id: "live", title: "День", icon: "navigate" },
     { id: "route", title: "Маршрут", icon: "map" },
@@ -2149,19 +1499,9 @@ function BottomTabs({
       {tabs.map((tab) => {
         const selected = active === tab.id;
         return (
-          <Pressable
-            key={tab.id}
-            style={[styles.tab, selected && styles.tabActive]}
-            onPress={() => setActive(tab.id)}
-          >
-            <Ionicons
-              name={tab.icon}
-              size={17}
-              color={selected ? colors.dark : colors.muted}
-            />
-            <Text style={[styles.tabText, selected && styles.tabTextActive]}>
-              {tab.title}
-            </Text>
+          <Pressable key={tab.id} style={[styles.tab, selected && styles.tabActive]} onPress={() => setActive(tab.id)}>
+            <Ionicons name={tab.icon} size={17} color={selected ? colors.dark : colors.muted} />
+            <Text style={[styles.tabText, selected && styles.tabTextActive]}>{tab.title}</Text>
           </Pressable>
         );
       })}
@@ -2197,485 +1537,96 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  logo: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: -1,
-  },
-  headerSub: {
-    color: colors.muted,
-    fontWeight: "800",
-    fontSize: 12,
-    marginTop: 1,
-  },
+  logo: { color: colors.text, fontSize: 28, fontWeight: "900", letterSpacing: -1 },
+  headerSub: { color: colors.muted, fontWeight: "800", fontSize: 12, marginTop: 1 },
   headerRight: { flexDirection: "row", gap: 7, alignItems: "center" },
-  pill: {
-    backgroundColor: colors.panel2,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
+  pill: { backgroundColor: colors.panel2, borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 8 },
   pillText: { color: colors.text, fontWeight: "900", fontSize: 11 },
   goodPill: { backgroundColor: "rgba(34,197,94,0.22)" },
   badPill: { backgroundColor: "rgba(251,113,133,0.22)" },
   content: { flex: 1 },
   contentPad: { padding: 16, paddingBottom: 122 },
-  hero: {
-    borderRadius: 34,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.panel,
-    overflow: "hidden",
-    marginBottom: 20,
-  },
-  heroSun: {
-    position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    right: -70,
-    top: -80,
-    backgroundColor: "rgba(255,209,102,0.22)",
-  },
-  heroBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.gold,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
+  hero: { borderRadius: 34, padding: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, overflow: "hidden", marginBottom: 20 },
+  heroSun: { position: "absolute", width: 220, height: 220, borderRadius: 110, right: -70, top: -80, backgroundColor: "rgba(255,209,102,0.22)" },
+  heroBadge: { alignSelf: "flex-start", backgroundColor: colors.gold, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, flexDirection: "row", alignItems: "center", gap: 6 },
   heroBadgeText: { color: colors.dark, fontWeight: "900", fontSize: 11 },
-  heroTitle: {
-    color: colors.text,
-    fontSize: 32,
-    lineHeight: 37,
-    fontWeight: "900",
-    marginTop: 16,
-  },
+  heroTitle: { color: colors.text, fontSize: 32, lineHeight: 37, fontWeight: "900", marginTop: 16 },
   heroText: { color: colors.soft, fontSize: 14, lineHeight: 22, marginTop: 10 },
-  heroButton: {
-    marginTop: 18,
-    minHeight: 58,
-    borderRadius: 22,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
+  heroButton: { marginTop: 18, minHeight: 58, borderRadius: 22, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
   heroButtonText: { color: colors.dark, fontWeight: "900", fontSize: 15 },
   section: { marginBottom: 22 },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: "900",
-    marginBottom: 12,
-  },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: "900", marginBottom: 12 },
   row: { gap: 10, paddingRight: 12 },
-  noticeCard: {
-    width: 240,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 24,
-    padding: 15,
-  },
-  noticeIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.gold,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
+  noticeCard: { width: 240, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 24, padding: 15 },
+  noticeIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.gold, alignItems: "center", justifyContent: "center", marginBottom: 10 },
   noticeTitle: { color: colors.text, fontWeight: "900", fontSize: 16 },
-  noticeText: {
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 6,
-  },
-  noticeWide: {
-    flexDirection: "row",
-    gap: 12,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 22,
-    padding: 14,
-    marginBottom: 10,
-  },
-  countryCard: {
-    width: 145,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 22,
-    padding: 14,
-  },
+  noticeText: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 6 },
+  noticeWide: { flexDirection: "row", gap: 12, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 22, padding: 14, marginBottom: 10 },
+  countryCard: { width: 145, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 22, padding: 14 },
   countryEmoji: { fontSize: 27, marginBottom: 8 },
-  cityCard: {
-    width: 185,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 22,
-    padding: 14,
-  },
+  cityCard: { width: 185, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 22, padding: 14 },
   activeCard: { backgroundColor: colors.panel2, borderColor: colors.accent },
   cardTitle: { color: colors.text, fontWeight: "900", fontSize: 15 },
-  cardMuted: {
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 5,
-  },
-  inputBox: {
-    marginTop: 10,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    paddingHorizontal: 13,
-    minHeight: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
+  cardMuted: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 5 },
+  inputBox: { marginTop: 10, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 20, paddingHorizontal: 13, minHeight: 52, flexDirection: "row", alignItems: "center", gap: 8 },
   input: { flex: 1, color: colors.text, fontWeight: "800" },
-  budgetBox: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 24,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  budgetInput: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: "900",
-    paddingVertical: 4,
-  },
+  budgetBox: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 24, padding: 16, flexDirection: "row", alignItems: "center" },
+  budgetInput: { flex: 1, color: colors.text, fontSize: 28, fontWeight: "900", paddingVertical: 4 },
   currency: { color: colors.accent, fontWeight: "900", fontSize: 16 },
   quickRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
-  quickChip: {
-    backgroundColor: colors.panel2,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
+  quickChip: { backgroundColor: colors.panel2, borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
   quickText: { color: colors.soft, fontWeight: "900", fontSize: 12 },
-  summaryCard: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 26,
-    padding: 17,
-    marginBottom: 16,
-  },
-  kicker: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1.1,
-  },
-  summaryTitle: {
-    color: colors.text,
-    fontWeight: "900",
-    fontSize: 20,
-    marginTop: 7,
-  },
+  summaryCard: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 26, padding: 17, marginBottom: 16 },
+  kicker: { color: colors.accent, fontSize: 12, fontWeight: "900", letterSpacing: 1.1 },
+  summaryTitle: { color: colors.text, fontWeight: "900", fontSize: 20, marginTop: 7 },
   statGrid: { flexDirection: "row", gap: 8, marginTop: 14 },
-  miniStat: {
-    flex: 1,
-    backgroundColor: colors.panel2,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 10,
-  },
+  miniStat: { flex: 1, backgroundColor: colors.panel2, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 10 },
   miniLabel: { color: colors.muted, fontWeight: "800", fontSize: 11 },
-  miniValue: {
-    color: colors.text,
-    fontWeight: "900",
-    fontSize: 12,
-    marginTop: 5,
-  },
-  liveHero: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 28,
-    padding: 18,
-    marginBottom: 18,
-  },
-  liveTitle: {
-    color: colors.text,
-    fontSize: 24,
-    fontWeight: "900",
-    marginTop: 8,
-  },
+  miniValue: { color: colors.text, fontWeight: "900", fontSize: 12, marginTop: 5 },
+  liveHero: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 28, padding: 18, marginBottom: 18 },
+  liveTitle: { color: colors.text, fontSize: 24, fontWeight: "900", marginTop: 8 },
   commandGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  commandButton: {
-    width: "31.5%",
-    minHeight: 96,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    padding: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  commandTitle: {
-    color: colors.text,
-    fontSize: 12,
-    fontWeight: "900",
-    marginTop: 7,
-    textAlign: "center",
-  },
-  commandSub: {
-    color: colors.muted,
-    fontSize: 10,
-    fontWeight: "800",
-    marginTop: 3,
-    textAlign: "center",
-  },
-  routeCard: {
-    flexDirection: "row",
-    gap: 12,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 26,
-    padding: 14,
-    marginBottom: 13,
-  },
-  stepCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  commandButton: { width: "31.5%", minHeight: 96, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 20, padding: 10, justifyContent: "center", alignItems: "center" },
+  commandTitle: { color: colors.text, fontSize: 12, fontWeight: "900", marginTop: 7, textAlign: "center" },
+  commandSub: { color: colors.muted, fontSize: 10, fontWeight: "800", marginTop: 3, textAlign: "center" },
+  routeCard: { flexDirection: "row", gap: 12, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 26, padding: 14, marginBottom: 13 },
+  stepCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" },
   stepText: { color: colors.dark, fontWeight: "900" },
-  cardTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-  },
+  cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
   timeText: { color: colors.accent, fontWeight: "900" },
   crowdText: { fontWeight: "900", fontSize: 12 },
-  placeTitle: {
-    color: colors.text,
-    fontSize: 19,
-    fontWeight: "900",
-    marginTop: 6,
-  },
-  dealText: {
-    color: colors.gold,
-    fontWeight: "900",
-    marginTop: 8,
-    lineHeight: 19,
-  },
+  placeTitle: { color: colors.text, fontSize: 19, fontWeight: "900", marginTop: 6 },
+  dealText: { color: colors.gold, fontWeight: "900", marginTop: 8, lineHeight: 19 },
   info: { color: colors.soft, fontWeight: "700", marginTop: 8, lineHeight: 19 },
   tip: { color: "#E0F2FE", marginTop: 9, lineHeight: 19 },
   actionRow: { flexDirection: "row", gap: 8, marginTop: 12 },
-  secondaryButton: {
-    flex: 1,
-    backgroundColor: colors.accent,
-    borderRadius: 16,
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: 10,
-  },
+  secondaryButton: { flex: 1, backgroundColor: colors.accent, borderRadius: 16, minHeight: 44, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6, paddingHorizontal: 10 },
   secondaryButtonText: { color: colors.dark, fontWeight: "900", fontSize: 12 },
-  darkButton: {
-    flex: 1,
-    backgroundColor: colors.panel2,
-    borderRadius: 16,
-    minHeight: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
+  darkButton: { flex: 1, backgroundColor: colors.panel2, borderRadius: 16, minHeight: 44, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6, borderWidth: 1, borderColor: colors.border },
   darkButtonText: { color: colors.text, fontWeight: "900", fontSize: 12 },
-  compactCard: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    padding: 13,
-    marginBottom: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  photoCard: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 22,
-    padding: 14,
-    marginBottom: 10,
-  },
-  placeCard: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 24,
-    padding: 15,
-    marginBottom: 12,
-  },
-  badge: {
-    color: colors.dark,
-    backgroundColor: colors.accent,
-    overflow: "hidden",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    fontWeight: "900",
-    fontSize: 11,
-  },
-  toolCard: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 24,
-    padding: 15,
-  },
-  adviceText: {
-    color: colors.gold,
-    fontSize: 16,
-    fontWeight: "900",
-    lineHeight: 23,
-    marginTop: 12,
-  },
-  buyCard: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 22,
-    padding: 14,
-    marginBottom: 10,
-  },
-  phraseCard: {
-    backgroundColor: colors.panel2,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 18,
-    padding: 13,
-    marginBottom: 8,
-  },
+  compactCard: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 20, padding: 13, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 10 },
+  photoCard: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 22, padding: 14, marginBottom: 10 },
+  placeCard: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 24, padding: 15, marginBottom: 12 },
+  badge: { color: colors.dark, backgroundColor: colors.accent, overflow: "hidden", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, fontWeight: "900", fontSize: 11 },
+  toolCard: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 24, padding: 15 },
+  adviceText: { color: colors.gold, fontSize: 16, fontWeight: "900", lineHeight: 23, marginTop: 12 },
+  buyCard: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 22, padding: 14, marginBottom: 10 },
+  phraseCard: { backgroundColor: colors.panel2, borderWidth: 1, borderColor: colors.border, borderRadius: 18, padding: 13, marginBottom: 8 },
   phraseText: { color: colors.text, fontWeight: "900", lineHeight: 20 },
-  driverCard: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 24,
-    padding: 15,
-  },
-  driverTitle: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: "900",
-    lineHeight: 29,
-  },
-  checkRow: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 22,
-    padding: 14,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  checkRowDone: {
-    backgroundColor: "rgba(157,220,255,0.18)",
-    borderColor: colors.accent,
-  },
-  checkIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.panel2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  driverCard: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 24, padding: 15 },
+  driverTitle: { color: colors.text, fontSize: 22, fontWeight: "900", lineHeight: 29 },
+  checkRow: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 22, padding: 14, marginBottom: 10, flexDirection: "row", alignItems: "center", gap: 12 },
+  checkRowDone: { backgroundColor: "rgba(157,220,255,0.18)", borderColor: colors.accent },
+  checkIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.panel2, alignItems: "center", justifyContent: "center" },
   checkIconDone: { backgroundColor: colors.accent },
-  sosHero: {
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 28,
-    padding: 20,
-    marginBottom: 16,
-  },
-  sosTitle: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: "900",
-    marginTop: 10,
-  },
-  sosButton: {
-    backgroundColor: "#DC2626",
-    borderRadius: 22,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
+  sosHero: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, borderRadius: 28, padding: 20, marginBottom: 16 },
+  sosTitle: { color: colors.text, fontSize: 28, fontWeight: "900", marginTop: 10 },
+  sosButton: { backgroundColor: "#DC2626", borderRadius: 22, padding: 16, marginBottom: 10, flexDirection: "row", alignItems: "center", gap: 12 },
   sosButtonTitle: { color: "#FFF", fontSize: 17, fontWeight: "900" },
   sosNumber: { color: "#FECACA", marginTop: 3, fontWeight: "800" },
-  tabs: {
-    position: "absolute",
-    left: 8,
-    right: 8,
-    bottom: 10,
-    backgroundColor: "#13253A",
-    borderRadius: 26,
-    padding: 6,
-    flexDirection: "row",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  tab: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 18,
-    paddingVertical: 8,
-  },
+  tabs: { position: "absolute", left: 8, right: 8, bottom: 10, backgroundColor: "#13253A", borderRadius: 26, padding: 6, flexDirection: "row", borderWidth: 1, borderColor: colors.border },
+  tab: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 18, paddingVertical: 8 },
   tabActive: { backgroundColor: colors.accent },
-  tabText: {
-    color: colors.muted,
-    fontWeight: "900",
-    fontSize: 8,
-    marginTop: 2,
-  },
+  tabText: { color: colors.muted, fontWeight: "900", fontSize: 8, marginTop: 2 },
   tabTextActive: { color: colors.dark },
 });
