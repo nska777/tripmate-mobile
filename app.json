@@ -1,30 +1,37 @@
 {
   "expo": {
     "name": "TripMate AI Guide",
-    "slug": "tripmate-ai-guide",
+    "slug": "tripmate-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
-      "backgroundColor": "#0F172A",
-      "image": "./assets/splash.png"
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.tripmate.aiguide"
+      "supportsTablet": true
     },
     "android": {
-      "package": "com.tripmate.aiguide",
       "adaptiveIcon": {
-        "backgroundColor": "#0F172A",
-        "foregroundImage": "./assets/adaptive-icon.png"
-      }
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.tripmate.mobile"
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "replace-after-eas-init"
+        "projectId": "96b19b95-ff3a-4af4-9338-eba75c75fafd"
       }
-    }
+    },
+    "owner": "nska"
   }
 }
