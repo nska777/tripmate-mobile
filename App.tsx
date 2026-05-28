@@ -175,6 +175,7 @@ const countries: Country[] = [
 ];
 
 const cities: City[] = [
+  // Uzbekistan
   {
     id: "tashkent",
     countryId: "uz",
@@ -212,6 +213,53 @@ const cities: City[] = [
     taxiKmUZS: 2600,
   },
   {
+    id: "fergana",
+    countryId: "uz",
+    name: "Фергана",
+    subtitle: "Долина, ремесла, чайханы",
+    hero: "Спокойная Ферганская долина",
+    taxiBaseUZS: 9000,
+    taxiKmUZS: 2500,
+  },
+  {
+    id: "andijan",
+    countryId: "uz",
+    name: "Андижан",
+    subtitle: "Рынки, долина, локальная еда",
+    hero: "Живой город Ферганской долины",
+    taxiBaseUZS: 9000,
+    taxiKmUZS: 2500,
+  },
+  {
+    id: "namangan",
+    countryId: "uz",
+    name: "Наманган",
+    subtitle: "Парки, цветы, местная жизнь",
+    hero: "Зеленый город долины",
+    taxiBaseUZS: 9000,
+    taxiKmUZS: 2500,
+  },
+  {
+    id: "nukus",
+    countryId: "uz",
+    name: "Нукус",
+    subtitle: "Музей Савицкого, Каракалпакстан",
+    hero: "Искусство и пустынные маршруты",
+    taxiBaseUZS: 9000,
+    taxiKmUZS: 2600,
+  },
+  {
+    id: "termez",
+    countryId: "uz",
+    name: "Термез",
+    subtitle: "Буддийские памятники, юг страны",
+    hero: "Южный исторический маршрут",
+    taxiBaseUZS: 9000,
+    taxiKmUZS: 2600,
+  },
+
+  // UAE
+  {
     id: "dubai",
     countryId: "ae",
     name: "Дубай",
@@ -220,6 +268,35 @@ const cities: City[] = [
     taxiBaseUZS: 19000,
     taxiKmUZS: 8500,
   },
+  {
+    id: "abudhabi",
+    countryId: "ae",
+    name: "Абу-Даби",
+    subtitle: "Мечеть, Лувр, набережная",
+    hero: "Культура, море и спокойный люкс",
+    taxiBaseUZS: 18000,
+    taxiKmUZS: 8000,
+  },
+  {
+    id: "sharjah",
+    countryId: "ae",
+    name: "Шарджа",
+    subtitle: "Музеи, рынки, семейный отдых",
+    hero: "Культурная столица ОАЭ",
+    taxiBaseUZS: 17000,
+    taxiKmUZS: 7600,
+  },
+  {
+    id: "rasalkhaimah",
+    countryId: "ae",
+    name: "Рас-эль-Хайма",
+    subtitle: "Горы, пляжи, природа",
+    hero: "Горы и море рядом",
+    taxiBaseUZS: 17000,
+    taxiKmUZS: 7600,
+  },
+
+  // Turkey
   {
     id: "istanbul",
     countryId: "tr",
@@ -230,6 +307,44 @@ const cities: City[] = [
     taxiKmUZS: 6500,
   },
   {
+    id: "antalya",
+    countryId: "tr",
+    name: "Анталия",
+    subtitle: "Море, старый город, водопады",
+    hero: "Курортный город с историей",
+    taxiBaseUZS: 15000,
+    taxiKmUZS: 6000,
+  },
+  {
+    id: "ankara",
+    countryId: "tr",
+    name: "Анкара",
+    subtitle: "Музеи, столица, история",
+    hero: "Спокойная столица Турции",
+    taxiBaseUZS: 15000,
+    taxiKmUZS: 5800,
+  },
+  {
+    id: "izmir",
+    countryId: "tr",
+    name: "Измир",
+    subtitle: "Набережная, рынки, Эгейское море",
+    hero: "Морской город с легким настроением",
+    taxiBaseUZS: 15000,
+    taxiKmUZS: 5800,
+  },
+  {
+    id: "cappadocia",
+    countryId: "tr",
+    name: "Каппадокия",
+    subtitle: "Шары, долины, пещеры",
+    hero: "Самый кинематографичный регион Турции",
+    taxiBaseUZS: 16000,
+    taxiKmUZS: 6500,
+  },
+
+  // Kazakhstan
+  {
     id: "almaty",
     countryId: "kz",
     name: "Алматы",
@@ -238,6 +353,35 @@ const cities: City[] = [
     taxiBaseUZS: 14000,
     taxiKmUZS: 4500,
   },
+  {
+    id: "astana",
+    countryId: "kz",
+    name: "Астана",
+    subtitle: "Современная архитектура",
+    hero: "Футуристичная столица",
+    taxiBaseUZS: 14000,
+    taxiKmUZS: 4500,
+  },
+  {
+    id: "shymkent",
+    countryId: "kz",
+    name: "Шымкент",
+    subtitle: "Юг, рынки, еда",
+    hero: "Теплый южный город",
+    taxiBaseUZS: 13000,
+    taxiKmUZS: 4300,
+  },
+  {
+    id: "aktau",
+    countryId: "kz",
+    name: "Актау",
+    subtitle: "Каспий, скалы, море",
+    hero: "Каспийский маршрут",
+    taxiBaseUZS: 13000,
+    taxiKmUZS: 4300,
+  },
+
+  // France
   {
     id: "paris",
     countryId: "fr",
@@ -248,6 +392,35 @@ const cities: City[] = [
     taxiKmUZS: 12000,
   },
   {
+    id: "nice",
+    countryId: "fr",
+    name: "Ницца",
+    subtitle: "Лазурный берег, море, старый город",
+    hero: "Французская Ривьера",
+    taxiBaseUZS: 30000,
+    taxiKmUZS: 11500,
+  },
+  {
+    id: "lyon",
+    countryId: "fr",
+    name: "Лион",
+    subtitle: "Гастрономия, старый город",
+    hero: "Кулинарная столица Франции",
+    taxiBaseUZS: 30000,
+    taxiKmUZS: 11200,
+  },
+  {
+    id: "marseille",
+    countryId: "fr",
+    name: "Марсель",
+    subtitle: "Порт, море, южный вайб",
+    hero: "Средиземноморская Франция",
+    taxiBaseUZS: 30000,
+    taxiKmUZS: 11200,
+  },
+
+  // Italy
+  {
     id: "rome",
     countryId: "it",
     name: "Рим",
@@ -256,6 +429,35 @@ const cities: City[] = [
     taxiBaseUZS: 28000,
     taxiKmUZS: 11000,
   },
+  {
+    id: "milan",
+    countryId: "it",
+    name: "Милан",
+    subtitle: "Мода, Дуомо, шопинг",
+    hero: "Стиль, мода и архитектура",
+    taxiBaseUZS: 28000,
+    taxiKmUZS: 11000,
+  },
+  {
+    id: "venice",
+    countryId: "it",
+    name: "Венеция",
+    subtitle: "Каналы, мосты, романтика",
+    hero: "Город на воде",
+    taxiBaseUZS: 26000,
+    taxiKmUZS: 10500,
+  },
+  {
+    id: "florence",
+    countryId: "it",
+    name: "Флоренция",
+    subtitle: "Ренессанс, музеи, виды",
+    hero: "Искусство и тосканская атмосфера",
+    taxiBaseUZS: 26000,
+    taxiKmUZS: 10500,
+  },
+
+  // USA
   {
     id: "nyc",
     countryId: "us",
@@ -266,6 +468,44 @@ const cities: City[] = [
     taxiKmUZS: 15000,
   },
   {
+    id: "losangeles",
+    countryId: "us",
+    name: "Лос-Анджелес",
+    subtitle: "Пляжи, Голливуд, виды",
+    hero: "Кино, океан и солнце",
+    taxiBaseUZS: 35000,
+    taxiKmUZS: 15000,
+  },
+  {
+    id: "miami",
+    countryId: "us",
+    name: "Майами",
+    subtitle: "Пляжи, арт-деко, ночная жизнь",
+    hero: "Океан, музыка и яркость",
+    taxiBaseUZS: 34000,
+    taxiKmUZS: 14500,
+  },
+  {
+    id: "lasvegas",
+    countryId: "us",
+    name: "Лас-Вегас",
+    subtitle: "Шоу, казино, огни",
+    hero: "Город развлечений",
+    taxiBaseUZS: 33000,
+    taxiKmUZS: 14000,
+  },
+  {
+    id: "sanfrancisco",
+    countryId: "us",
+    name: "Сан-Франциско",
+    subtitle: "Мост, холмы, залив",
+    hero: "Виды, океан и техно-вайб",
+    taxiBaseUZS: 35000,
+    taxiKmUZS: 15000,
+  },
+
+  // Japan
+  {
     id: "tokyo",
     countryId: "jp",
     name: "Токио",
@@ -273,6 +513,33 @@ const cities: City[] = [
     hero: "Будущее, традиции и идеальный сервис",
     taxiBaseUZS: 30000,
     taxiKmUZS: 12000,
+  },
+  {
+    id: "kyoto",
+    countryId: "jp",
+    name: "Киото",
+    subtitle: "Храмы, сады, традиции",
+    hero: "Традиционная Япония",
+    taxiBaseUZS: 28000,
+    taxiKmUZS: 11000,
+  },
+  {
+    id: "osaka",
+    countryId: "jp",
+    name: "Осака",
+    subtitle: "Еда, огни, замок",
+    hero: "Город еды и развлечений",
+    taxiBaseUZS: 28000,
+    taxiKmUZS: 11000,
+  },
+  {
+    id: "nara",
+    countryId: "jp",
+    name: "Нара",
+    subtitle: "Олени, храмы, парки",
+    hero: "Спокойный древний город",
+    taxiBaseUZS: 26000,
+    taxiKmUZS: 10000,
   },
 ];
 
@@ -606,6 +873,75 @@ const fallbackTemplates: Omit<
     safetyTip: "Проверяй чек и упаковку.",
     whyGo: "Полезно для подарков и понимания цен.",
   },
+  ,
+  {
+    title: "Кофейня / завтрак в центре",
+    category: "food",
+    subtitle: "Легкая утренняя точка перед прогулкой",
+    address: "центр города",
+    entryUZS: 0,
+    minSpendUZS: 70000,
+    durationMin: 50,
+    rating: 4.4,
+    crowd: "medium",
+    bestTime: "09:00–10:30",
+    openNow: true,
+    deal: "Комбо-завтрак часто дешевле отдельных позиций",
+    cheapTip: "Смотри сет-меню и завтраки до 11:00.",
+    safetyTip: "Выбирай места с рейтингом и понятным меню.",
+    whyGo: "Хорошее начало маршрута на весь день.",
+  },
+  {
+    title: "Смотровая площадка / панорамная точка",
+    category: "sight",
+    subtitle: "Вид на город и красивые фото",
+    address: "панорамная зона",
+    entryUZS: 50000,
+    minSpendUZS: 20000,
+    durationMin: 60,
+    rating: 4.5,
+    crowd: "medium",
+    bestTime: "16:30–18:00",
+    openNow: true,
+    deal: "Лучшее фото бесплатно на закате",
+    cheapTip: "Приходи до заката, чтобы не платить за дорогие кафе с видом.",
+    safetyTip: "Не подходи к краям и держи телефон крепко.",
+    whyGo: "Добавляет вау-эффект в маршрут.",
+  },
+  {
+    title: "Вечерняя улица / прогулочная зона",
+    category: "night",
+    subtitle: "Огни, кафе, музыка и финал дня",
+    address: "вечерний район",
+    entryUZS: 0,
+    minSpendUZS: 100000,
+    durationMin: 90,
+    rating: 4.5,
+    crowd: "medium",
+    bestTime: "19:00–21:30",
+    openNow: true,
+    deal: "Вечером часто бывают акции на напитки и десерты",
+    cheapTip: "Смотри меню у входа и не садись без цен.",
+    safetyTip: "После 22:00 лучше возвращаться на такси.",
+    whyGo: "Красивый финал маршрута на весь день.",
+  },
+  {
+    title: "Локальная кондитерская / десерт",
+    category: "food",
+    subtitle: "Небольшая вкусная пауза",
+    address: "центр города",
+    entryUZS: 0,
+    minSpendUZS: 45000,
+    durationMin: 35,
+    rating: 4.3,
+    crowd: "low",
+    bestTime: "15:00–16:00",
+    openNow: true,
+    deal: "Десерт дня может быть дешевле",
+    cheapTip: "Бери локальный десерт, не туристический набор.",
+    safetyTip: "Проверяй состав, если есть аллергии.",
+    whyGo: "Дает отдых и не ломает бюджет.",
+  },
 ];
 
 const categoryLabels: Record<Category, string> = {
@@ -767,14 +1103,16 @@ function buildSmartRoute(params: {
   const result: RouteStep[] = [];
   let total = 0;
   const times = [
-    "09:30",
-    "11:00",
-    "12:30",
-    "14:20",
-    "16:00",
-    "18:00",
-    "19:30",
-    "21:00",
+    "09:00",
+    "10:15",
+    "11:45",
+    "13:15",
+    "14:45",
+    "16:15",
+    "17:45",
+    "19:15",
+    "20:45",
+    "22:00",
   ];
 
   ranked.forEach((place) => {
@@ -784,8 +1122,8 @@ function buildSmartRoute(params: {
     const pointCost = place.entryUZS + place.minSpendUZS + taxi;
 
     if (
-      result.length < 7 &&
-      (total + pointCost <= budgetUZS || result.length < 2)
+      result.length < 10 &&
+      (total + pointCost <= budgetUZS || result.length < 4)
     ) {
       total += pointCost;
       result.push({
@@ -1248,8 +1586,8 @@ function HomeScreen(props: {
           Твой личный гид, который сам ведет по городу
         </Text>
         <Text style={styles.heroText}>
-          Маршрут, такси, скидки, акции, предупреждения, бюджет, SOS и голосовой
-          помощник в одном приложении.
+          Маршрут на весь день, такси, скидки, акции, предупреждения, бюджет,
+          SOS и голосовой помощник в одном приложении.
         </Text>
 
         <View style={styles.heroButtons}>
