@@ -1054,6 +1054,19 @@ function buildSmartRoute(params: {
 }) {
   const { items, city, budgetUZS, selectedCategories, mood } = params;
 
+  const times = [
+    "09:00",
+    "10:15",
+    "11:45",
+    "13:15",
+    "14:45",
+    "16:15",
+    "17:45",
+    "19:15",
+    "20:45",
+    "22:00",
+  ];
+
   const ranked = [...items].sort((a, b) => {
     const aCategory = selectedCategories.includes(a.category) ? 2 : 0;
     const bCategory = selectedCategories.includes(b.category) ? 2 : 0;
@@ -1100,30 +1113,44 @@ function buildSmartRoute(params: {
     );
   });
 
+  const routePool: Place[] = [...ranked];
+
+  // Главное исправление: даже если в конкретном городе мало реальных точек,
+  // мы добавляем универсальные точки дня, чтобы маршрут был полноценный с утра до вечера.
+  fallbackTemplates.forEach((template, index) => {
+    routePool.push({
+      ...template,
+      id: `day-fill-${city.id}-${index}`,
+      countryId: city.countryId,
+      cityId: city.id,
+      lat: 41 + index * 0.012,
+      lng: 69 + index * 0.012,
+      address: template.address,
+    });
+  });
+
+  const uniquePool = routePool.filter(
+    (place, index, array) =>
+      array.findIndex(
+        (item) =>
+          item.title === place.title && item.category === place.category,
+      ) === index,
+  );
+
   const result: RouteStep[] = [];
   let total = 0;
-  const times = [
-    "09:00",
-    "10:15",
-    "11:45",
-    "13:15",
-    "14:45",
-    "16:15",
-    "17:45",
-    "19:15",
-    "20:45",
-    "22:00",
-  ];
 
-  ranked.forEach((place) => {
+  uniquePool.forEach((place) => {
     const prev = result[result.length - 1];
     const km = prev ? distanceKm(prev, place) : 0;
     const taxi = prev ? taxiCost(km, city) : 0;
     const pointCost = place.entryUZS + place.minSpendUZS + taxi;
 
+    // Для полного дня первые 8 точек добавляются обязательно,
+    // а бюджет используется как расчет/предупреждение, а не как жесткий стоп.
     if (
       result.length < 10 &&
-      (total + pointCost <= budgetUZS || result.length < 4)
+      (result.length < 8 || total + pointCost <= budgetUZS)
     ) {
       total += pointCost;
       result.push({
@@ -1775,7 +1802,7 @@ function HomeScreen(props: {
       <View style={styles.summaryCard}>
         <Text style={styles.kicker}>ПЛАН ПОЕЗДКИ</Text>
         <Text style={styles.summaryTitle}>
-          Подобрано точек: {props.route.length}
+          Маршрут на весь день: {props.route.length} точек
         </Text>
         <Text style={styles.cardMuted}>
           {props.route.map((item) => item.title).join(" → ") ||
